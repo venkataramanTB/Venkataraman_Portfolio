@@ -8,7 +8,7 @@
    *   title       — Section heading
    */
   import { api } from '$lib/api.js';
-  import { toast } from '$lib/components/Toast.svelte';
+  import { toast } from '$lib/stores/toast.js';
   import { createEventDispatcher } from 'svelte';
 
   export let resource = '';

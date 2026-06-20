@@ -1,21 +1,9 @@
 <script>
-  import { writable } from 'svelte/store';
-
-  export const toasts = writable([]);
-
-  export function toast(message, type = 'success') {
-    const id = Date.now();
-    toasts.update(t => [...t, { id, message, type }]);
-    setTimeout(() => toasts.update(t => t.filter(x => x.id !== id)), 3500);
-  }
-
-  import { onMount } from 'svelte';
-  let items = [];
-  onMount(() => toasts.subscribe(v => items = v));
+  import { toasts } from '$lib/stores/toast.js';
 </script>
 
-<div class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2">
-  {#each items as t (t.id)}
+<div class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+  {#each $toasts as t (t.id)}
     <div
       class="flex items-center gap-3 px-5 py-3 rounded-xl glass border text-sm font-medium shadow-2xl transition-all duration-300"
       class:border-green-500={t.type === 'success'}
