@@ -18,12 +18,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_origins = settings.origins
+_wildcard = _origins == ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.origins,
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials=not _wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
+    # covers *.vercel.app preview deployments automatically
+    allow_origin_regex=r"https://[\w-]+\.vercel\.app" if not _wildcard else None,
 )
 
 app.include_router(auth.router)
