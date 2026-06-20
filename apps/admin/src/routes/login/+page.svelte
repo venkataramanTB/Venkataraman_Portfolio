@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { token } from '$lib/stores/auth.js';
   import { api } from '$lib/api.js';
-  import { toast } from '$lib/components/Toast.svelte';
+  import { toast } from '$lib/stores/toast.js';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
 

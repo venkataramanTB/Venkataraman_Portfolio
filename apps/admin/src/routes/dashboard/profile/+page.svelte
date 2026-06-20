@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { api } from '$lib/api.js';
-  import { toast } from '$lib/components/Toast.svelte';
+  import { toast } from '$lib/stores/toast.js';
 
   let profile = null;
   let loading = true;
