@@ -1,13 +1,13 @@
 <script>
-  import Navbar        from '$lib/components/Navbar.svelte';
-  import Hero          from '$lib/components/Hero.svelte';
-  import About         from '$lib/components/About.svelte';
-  import Skills        from '$lib/components/Skills.svelte';
-  import Experience    from '$lib/components/Experience.svelte';
-  import Projects      from '$lib/components/Projects.svelte';
-  import Certificates  from '$lib/components/Certificates.svelte';
-  import Contact       from '$lib/components/Contact.svelte';
-  import Footer        from '$lib/components/Footer.svelte';
+  import Navbar       from '$lib/components/Navbar.svelte';
+  import Hero         from '$lib/components/Hero.svelte';
+  import About        from '$lib/components/About.svelte';
+  import Skills       from '$lib/components/Skills.svelte';
+  import Experience   from '$lib/components/Experience.svelte';
+  import Projects     from '$lib/components/Projects.svelte';
+  import Certificates from '$lib/components/Certificates.svelte';
+  import Contact      from '$lib/components/Contact.svelte';
+  import Footer       from '$lib/components/Footer.svelte';
 
   export let data;
 
@@ -27,7 +27,6 @@
 <svelte:head>
   <title>{profile?.name ?? 'Venkataraman TB'} — AI Engineer · Full Stack · iOS · ML</title>
   <meta name="description" content={profile?.bio ?? 'AI Engineer, Full Stack Developer, iOS App Developer & ML Engineer'} />
-  <!-- Open Graph -->
   <meta property="og:title"       content="{profile?.name ?? 'Venkataraman TB'} — Portfolio" />
   <meta property="og:description" content={profile?.bio ?? 'AI Engineer, Full Stack Developer, iOS App Developer & ML Engineer'} />
   <meta property="og:type"        content="website" />
@@ -36,7 +35,7 @@
   {/if}
 </svelte:head>
 
-<Navbar />
+<Navbar {socialLinks} />
 
 <main>
   <Hero      {profile} {socialLinks} />

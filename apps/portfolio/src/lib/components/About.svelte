@@ -1,97 +1,65 @@
 <script>
-  import { onMount } from 'svelte';
-  import { gsap } from 'gsap';
+  import { reveal } from '$lib/actions/reveal.js';
 
   export let profile = null;
-  export let stats = [];
+  export let stats   = [];
 
-  onMount(async () => {
-    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-    gsap.registerPlugin(ScrollTrigger);
+  const fallbackStats = [
+    { value: '3+',  suffix: '', label: 'Years of experience'  },
+    { value: '20+', suffix: '', label: 'Projects shipped'     },
+    { value: '4',   suffix: '',  label: 'Domains: AI, Web, iOS, ML' },
+    { value: '10+', suffix: '', label: 'Certifications'       },
+  ];
 
-    gsap.fromTo('#about .reveal-up', {
-      opacity: 0, y: 60,
-    }, {
-      opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: 'power3.out',
-      scrollTrigger: { trigger: '#about', start: 'top 75%' },
-    });
-
-    // Counter animation for stats
-    stats.forEach((stat, i) => {
-      const el = document.querySelector(`.stat-value-${i}`);
-      if (!el) return;
-      const target = parseInt(stat.value, 10);
-      if (isNaN(target)) return;
-      gsap.fromTo({ val: 0 }, { val: target }, {
-        val: target, duration: 2, ease: 'power2.out',
-        scrollTrigger: { trigger: '#about', start: 'top 75%' },
-        onUpdate: function() { el.textContent = Math.round(this.targets()[0].val) + (stat.suffix || ''); },
-      });
-    });
-  });
-
-  const domainIcons = {
-    'AI Engineer':            { icon: '🧠', color: 'text-primary' },
-    'Full Stack Developer':   { icon: '⚡', color: 'text-secondary' },
-    'iOS App Developer':      { icon: '📱', color: 'text-accent' },
-    'ML Engineer':            { icon: '🔬', color: 'text-green-400' },
-  };
+  $: displayStats = stats.length ? stats : fallbackStats;
 </script>
 
-<section id="about" class="section-pad relative">
-  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(56,189,248,0.05)_0%,_transparent_60%)]"></div>
+<section id="about" class="py-32 px-6 max-w-5xl mx-auto">
+  <hr class="divider mb-16" />
 
-  <div class="max-w-7xl mx-auto px-6 relative z-10">
-    <!-- Section header -->
-    <div class="reveal-up text-center mb-16">
-      <p class="text-primary text-sm font-mono uppercase tracking-widest mb-3">Get to know me</p>
-      <h2 class="text-5xl font-black">About <span class="gradient-text">Me</span></h2>
-    </div>
+  <!-- Section label -->
+  <div use:reveal class="mb-14">
+    <span class="sec-num">01 / About</span>
+  </div>
 
-    <div class="grid lg:grid-cols-2 gap-16 items-center">
-      <!-- Left — bio + domains -->
-      <div class="space-y-8">
-        <p class="reveal-up text-lg text-slate-300 leading-relaxed">
-          {profile?.bio ?? 'I architect intelligent systems that span the full stack — from training ML models and shipping LLM-powered agents to building pixel-perfect iOS apps and high-throughput web backends.'}
-        </p>
+  <div class="grid lg:grid-cols-[1fr_auto] gap-16 lg:gap-24 items-start">
 
-        <div class="reveal-up grid grid-cols-2 gap-4">
-          {#each Object.entries(domainIcons) as [domain, { icon, color }]}
-            <div class="glass rounded-2xl p-4 border border-border hover:border-primary/30 transition-all duration-300 group">
-              <span class="text-2xl mb-2 block">{icon}</span>
-              <p class="text-sm font-semibold text-slate-200 group-hover:text-primary transition-colors">{domain}</p>
-            </div>
-          {/each}
-        </div>
+    <!-- Bio -->
+    <div class="space-y-6">
+      <h2 use:reveal={{ delay: 80 }}
+          class="text-3xl sm:text-4xl font-bold leading-snug tracking-tight" style="color: var(--text)">
+        {profile?.name ?? 'Venkataraman TB'}
+      </h2>
 
-        <div class="reveal-up flex flex-wrap gap-3">
+      <p use:reveal={{ delay: 140 }} class="text-base leading-loose" style="color: var(--muted)">
+        {profile?.bio ?? 'I architect intelligent systems that span the full stack — from training ML models and shipping LLM-powered agents to building pixel-perfect iOS apps and high-throughput web backends.'}
+      </p>
+
+      {#if profile?.location || profile?.email}
+        <div use:reveal={{ delay: 220 }} class="flex flex-wrap gap-5 pt-2">
           {#if profile?.location}
-            <span class="px-3 py-1.5 rounded-full text-sm glass border border-border text-slate-400">📍 {profile.location}</span>
+            <span class="sec-num">📍 {profile.location}</span>
           {/if}
           {#if profile?.email}
-            <a href="mailto:{profile.email}" class="px-3 py-1.5 rounded-full text-sm glass border border-border text-slate-400 hover:text-primary transition-colors">✉️ {profile.email}</a>
+            <a href="mailto:{profile.email}"
+               class="sec-num hover:text-[var(--text)] transition-colors duration-200">
+              {profile.email}
+            </a>
           {/if}
         </div>
-      </div>
+      {/if}
+    </div>
 
-      <!-- Right — animated stats -->
-      <div class="reveal-up grid grid-cols-2 gap-6">
-        {#each stats as stat, i}
-          <div class="glass rounded-3xl p-8 border border-border hover:border-primary/30 transition-all duration-300 text-center group glow-primary opacity-0 group-hover:opacity-100">
-            <p class="stat-value-{i} text-4xl font-black gradient-text mb-2">{stat.value}{stat.suffix ?? ''}</p>
-            <p class="text-sm text-slate-400">{stat.label}</p>
-          </div>
-        {/each}
-
-        {#if stats.length === 0}
-          {#each [['30+','Projects Shipped'],['10+','AI Models'],['5+','iOS Apps'],['15+','Certs']] as [val, label]}
-            <div class="glass rounded-3xl p-8 border border-border text-center">
-              <p class="text-4xl font-black gradient-text mb-2">{val}</p>
-              <p class="text-sm text-slate-400">{label}</p>
-            </div>
-          {/each}
-        {/if}
-      </div>
+    <!-- Stats -->
+    <div use:reveal={{ delay: 100 }} class="grid grid-cols-2 gap-8 lg:gap-10 shrink-0">
+      {#each displayStats.slice(0, 4) as stat}
+        <div class="text-right lg:text-left">
+          <p class="text-3xl font-bold tracking-tight" style="color: var(--text)">
+            {stat.value}{stat.suffix ?? ''}
+          </p>
+          <p class="sec-num mt-1">{stat.label}</p>
+        </div>
+      {/each}
     </div>
   </div>
 </section>

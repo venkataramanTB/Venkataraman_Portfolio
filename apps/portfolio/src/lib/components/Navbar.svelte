@@ -1,82 +1,104 @@
 <script>
   import { onMount } from 'svelte';
-  import { gsap } from 'gsap';
 
-  let scrolled = false;
-  let menuOpen = false;
+  export let socialLinks = [];
 
-  const links = [
-    { label: 'About',        href: '#about' },
-    { label: 'Skills',       href: '#skills' },
-    { label: 'Experience',   href: '#experience' },
-    { label: 'Projects',     href: '#projects' },
-    { label: 'Certificates', href: '#certificates' },
-    { label: 'Contact',      href: '#contact' },
+  let scrolled  = false;
+  let menuOpen  = false;
+
+  const pages = [
+    { label: 'About',    href: '#about'    },
+    { label: 'Work',     href: '#work'     },
+    { label: 'Projects', href: '#projects' },
+    { label: 'Contact',  href: '#contact'  },
   ];
 
-  onMount(() => {
-    gsap.fromTo('nav', { y: -80, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: 'power3.out', delay: 0.5 });
+  function getSocial(platform) {
+    return socialLinks.find(l => l.platform?.toLowerCase() === platform)?.url ?? null;
+  }
 
-    const onScroll = () => { scrolled = window.scrollY > 20; };
-    window.addEventListener('scroll', onScroll);
+  onMount(() => {
+    const onScroll = () => { scrolled = window.scrollY > 50; };
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   });
 </script>
 
 <nav
-  class="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
-  class:glass={scrolled}
-  class:border-b={scrolled}
-  class:border-border={scrolled}
+  class="fixed top-0 left-0 right-0 z-50 transition-all duration-400"
+  style="
+    background: {scrolled ? 'rgba(10,10,10,0.92)' : 'transparent'};
+    backdrop-filter: {scrolled ? 'blur(14px)' : 'none'};
+    border-bottom: 1px solid {scrolled ? 'var(--border)' : 'transparent'};
+  "
 >
-  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-    <!-- Logo -->
-    <a href="/" class="text-xl font-bold gradient-text tracking-tight">
-      VTB<span class="text-white opacity-30">.</span>
-    </a>
+  <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
 
-    <!-- Desktop links -->
-    <ul class="hidden md:flex items-center gap-8">
-      {#each links as { label, href }}
+    <!-- Logo -->
+    <a href="/" class="text-xs font-bold tracking-[0.25em] uppercase"
+       style="color: var(--accent)">VTB</a>
+
+    <!-- Desktop nav links -->
+    <ul class="hidden md:flex items-center gap-10">
+      {#each pages as { label, href }}
         <li>
-          <a
-            {href}
-            class="text-sm text-slate-400 hover:text-white transition-colors duration-200 relative group"
-          >
+          <a {href} class="sec-num hover:text-[var(--text)] transition-colors duration-200">
             {label}
-            <span class="absolute -bottom-1 left-0 w-0 h-px bg-primary transition-all duration-300 group-hover:w-full"></span>
           </a>
         </li>
       {/each}
     </ul>
 
-    <!-- CTA -->
-    <a
-      href="#contact"
-      class="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-dark transition-all duration-300"
-    >
-      Hire Me
-    </a>
+    <!-- Desktop social + CTA -->
+    <div class="hidden md:flex items-center gap-6">
+      {#if getSocial('github')}
+        <a href={getSocial('github')} target="_blank" rel="noopener"
+           class="sec-num hover:text-[var(--text)] transition-colors duration-200">GitHub</a>
+      {/if}
+      {#if getSocial('linkedin')}
+        <a href={getSocial('linkedin')} target="_blank" rel="noopener"
+           class="sec-num hover:text-[var(--text)] transition-colors duration-200">LinkedIn</a>
+      {/if}
+        <a href="#contact"
+           class="sec-num px-4 py-2 border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all duration-200 btn btn-primary">
+          Hire Me →
+        </a>
+    </div>
 
     <!-- Mobile burger -->
     <button
-      class="md:hidden flex flex-col gap-1.5 p-2"
+      class="md:hidden flex flex-col gap-[5px] p-2"
       on:click={() => menuOpen = !menuOpen}
       aria-label="Toggle menu"
     >
-      <span class="w-6 h-0.5 bg-white transition-all" class:rotate-45={menuOpen} class:translate-y-2={menuOpen}></span>
-      <span class="w-6 h-0.5 bg-white transition-all" class:opacity-0={menuOpen}></span>
-      <span class="w-6 h-0.5 bg-white transition-all" class:-rotate-45={menuOpen} class:-translate-y-2={menuOpen}></span>
+      <span class="block w-5 h-px bg-[var(--text)] transition-all duration-300"
+            style="transform: {menuOpen ? 'rotate(45deg) translate(4px,4px)' : 'none'}"></span>
+      <span class="block w-5 h-px bg-[var(--text)] transition-all duration-300"
+            style="opacity: {menuOpen ? 0 : 1}"></span>
+      <span class="block w-5 h-px bg-[var(--text)] transition-all duration-300"
+            style="transform: {menuOpen ? 'rotate(-45deg) translate(4px,-4px)' : 'none'}"></span>
     </button>
   </div>
 
   <!-- Mobile menu -->
   {#if menuOpen}
-    <div class="md:hidden glass border-t border-border px-6 py-6 flex flex-col gap-4">
-      {#each links as { label, href }}
-        <a {href} class="text-slate-300 hover:text-white transition-colors" on:click={() => menuOpen = false}>{label}</a>
+    <div class="md:hidden border-t border-[var(--border)] px-6 py-8 space-y-6"
+         style="background: var(--bg)">
+      {#each pages as { label, href }}
+        <a {href} class="block sec-num hover:text-[var(--text)] transition-colors py-1"
+           on:click={() => menuOpen = false}>{label}</a>
       {/each}
-      <a href="#contact" class="mt-2 px-5 py-2.5 rounded-full text-sm font-medium text-center bg-primary text-dark" on:click={() => menuOpen = false}>Hire Me</a>
+      <hr class="divider" />
+      {#if getSocial('github')}
+        <a href={getSocial('github')} target="_blank" rel="noopener"
+           class="block sec-num hover:text-[var(--text)] transition-colors py-1">GitHub</a>
+      {/if}
+      {#if getSocial('linkedin')}
+        <a href={getSocial('linkedin')} target="_blank" rel="noopener"
+           class="block sec-num hover:text-[var(--text)] transition-colors py-1">LinkedIn</a>
+      {/if}
+      <a href="#contact" class="block sec-num text-[var(--accent)]"
+         on:click={() => menuOpen = false}>Hire Me →</a>
     </div>
   {/if}
 </nav>

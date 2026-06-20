@@ -1,104 +1,83 @@
 <script>
-  import { onMount } from 'svelte';
-  import { gsap } from 'gsap';
+  import { reveal } from '$lib/actions/reveal.js';
 
-  export let certificates = [];
-  export let achievements = [];
+  export let certificates  = [];
+  export let achievements  = [];
 
-  let activeTab = 'certs';
-
-  onMount(async () => {
-    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-    gsap.registerPlugin(ScrollTrigger);
-
-    gsap.fromTo('#certificates .reveal-up', { opacity: 0, y: 60 }, {
-      opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: 'power3.out',
-      scrollTrigger: { trigger: '#certificates', start: 'top 75%' },
-    });
-  });
+  $: certsByCategory = certificates.reduce((acc, c) => {
+    const cat = c.category || 'Other';
+    (acc[cat] ??= []).push(c);
+    return acc;
+  }, {});
 </script>
 
-<section id="certificates" class="section-pad relative overflow-hidden">
-  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(167,139,250,0.06)_0%,_transparent_60%)]"></div>
+<section id="recognition" class="py-32 px-6 max-w-5xl mx-auto">
+  <hr class="divider mb-16" />
 
-  <div class="max-w-7xl mx-auto px-6 relative z-10">
-    <div class="reveal-up text-center mb-12">
-      <p class="text-primary text-sm font-mono uppercase tracking-widest mb-3">Recognition & credentials</p>
-      <h2 class="text-5xl font-black">Certificates & <span class="gradient-text">Achievements</span></h2>
-    </div>
+  <div use:reveal class="mb-14">
+    <span class="sec-num">05 / Recognition</span>
+  </div>
 
-    <!-- Tab -->
-    <div class="reveal-up flex justify-center gap-2 mb-12">
-      {#each [['certs','Certificates'],['awards','Achievements']] as [tab, label]}
-        <button
-          class="px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300"
-          class:bg-primary={activeTab === tab}
-          class:text-dark={activeTab === tab}
-          class:glass={activeTab !== tab}
-          class:text-slate-400={activeTab !== tab}
-          class:border={activeTab !== tab}
-          class:border-border={activeTab !== tab}
-          on:click={() => activeTab = tab}
-        >{label}</button>
+  <!-- Achievements -->
+  {#if achievements.length}
+    <div class="mb-20 space-y-0">
+      {#each achievements as ach, i}
+        <div use:reveal={{ delay: i * 50 }}
+             class="grid sm:grid-cols-[48px_1fr] gap-6 py-8 border-b border-[var(--border)]">
+          <span class="sec-num pt-1 tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+          <div class="space-y-2">
+            <div class="flex items-baseline gap-3">
+              {#if ach.icon}<span class="text-lg">{ach.icon}</span>{/if}
+              <h3 class="text-base font-semibold tracking-tight" style="color: var(--text)">{ach.title}</h3>
+              {#if ach.date}<span class="sec-num ml-auto shrink-0">{ach.date}</span>{/if}
+            </div>
+            {#if ach.description}
+              <p class="text-sm leading-relaxed" style="color: var(--muted)">{ach.description}</p>
+            {/if}
+          </div>
+        </div>
       {/each}
     </div>
+  {/if}
 
-    {#if activeTab === 'certs'}
-      <div class="reveal-up grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {#each certificates as cert (cert.id)}
-          <div class="glass rounded-2xl p-6 border border-border hover:border-primary/30 transition-all duration-300 group flex flex-col gap-3">
-            <!-- Header row -->
-            <div class="flex items-start gap-4">
-              {#if cert.image_url}
-                <img src={cert.image_url} alt={cert.issuer} class="w-12 h-12 rounded-xl object-contain bg-white/5 p-1.5 shrink-0" />
-              {:else}
-                <div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-xl">🏅</div>
-              {/if}
-              <div class="min-w-0">
-                <h3 class="font-bold text-white leading-snug text-sm group-hover:text-primary transition-colors line-clamp-2">{cert.title}</h3>
-                <p class="text-xs text-slate-400 mt-0.5">{cert.issuer}</p>
+  <!-- Certificates -->
+  {#if certificates.length}
+    <div use:reveal class="mb-10">
+      <span class="sec-num">Certifications</span>
+    </div>
+
+    <div class="space-y-10">
+      {#each Object.entries(certsByCategory) as [cat, certs], gi}
+        <div use:reveal={{ delay: gi * 60 }}>
+          <p class="sec-num mb-5">{cat}</p>
+          <div class="space-y-0">
+            {#each certs as cert}
+              <div class="flex items-baseline justify-between gap-6 py-4 border-b border-[var(--border)] group">
+                <div class="flex items-start gap-4 min-w-0">
+                  <p class="text-sm font-medium leading-snug group-hover:text-[var(--text)] transition-colors duration-200"
+                     style="color: var(--muted)">
+                    {cert.title}
+                  </p>
+                </div>
+                <div class="flex items-center gap-6 shrink-0">
+                  <span class="sec-num">{cert.issuer}</span>
+                  {#if cert.issued_date}
+                    <span class="sec-num tabular-nums">{cert.issued_date}</span>
+                  {/if}
+                  {#if cert.credential_url}
+                    <a href={cert.credential_url} target="_blank" rel="noopener"
+                       class="sec-num hover:text-[var(--accent)] transition-colors duration-200">↗</a>
+                  {/if}
+                </div>
               </div>
-            </div>
-
-            {#if cert.issued_date}
-              <p class="text-xs text-slate-600 font-mono">Issued: {cert.issued_date}{cert.expiry_date ? ` · Expires: ${cert.expiry_date}` : ''}</p>
-            {/if}
-
-            {#if cert.credential_url}
-              <a
-                href={cert.credential_url} target="_blank" rel="noopener"
-                class="mt-auto inline-flex items-center gap-1.5 text-xs text-primary hover:text-white transition-colors"
-              >
-                View Credential →
-              </a>
-            {/if}
+            {/each}
           </div>
-        {/each}
+        </div>
+      {/each}
+    </div>
+  {/if}
 
-        {#if certificates.length === 0}
-          <div class="col-span-3 text-center py-16 text-slate-500">Certificates will appear here once added via the admin panel.</div>
-        {/if}
-      </div>
-
-    {:else}
-      <div class="reveal-up grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {#each achievements as ach (ach.id)}
-          <div class="glass rounded-2xl p-6 border border-border hover:border-accent/30 transition-all duration-300 group">
-            <div class="text-3xl mb-3">{ach.icon ?? '🏆'}</div>
-            <h3 class="font-bold text-white mb-2 group-hover:text-accent transition-colors">{ach.title}</h3>
-            {#if ach.description}
-              <p class="text-sm text-slate-400 leading-relaxed mb-3">{ach.description}</p>
-            {/if}
-            {#if ach.date}
-              <p class="text-xs text-slate-600 font-mono">{ach.date}</p>
-            {/if}
-          </div>
-        {/each}
-
-        {#if achievements.length === 0}
-          <div class="col-span-3 text-center py-16 text-slate-500">Achievements will appear here once added via the admin panel.</div>
-        {/if}
-      </div>
-    {/if}
-  </div>
+  {#if !certificates.length && !achievements.length}
+    <p class="sec-num">Recognition will appear once added via the admin panel.</p>
+  {/if}
 </section>

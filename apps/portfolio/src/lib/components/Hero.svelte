@@ -1,133 +1,91 @@
 <script>
   import { onMount } from 'svelte';
-  import { gsap } from 'gsap';
+  import ParticleText from './ParticleText.svelte';
   import NeuralCanvas from './NeuralCanvas.svelte';
 
-  export let profile = null;
+  export let profile     = null;
   export let socialLinks = [];
 
-  const roles = ['AI Engineer', 'Full Stack Developer', 'iOS App Developer', 'ML Engineer'];
-  let roleIdx = 0;
-  let currentRole = roles[0];
-  let roleEl;
+  let visible = false;
 
-  onMount(async () => {
-    const { ScrollTrigger, TextPlugin } = await import('gsap/all');
-    gsap.registerPlugin(ScrollTrigger, TextPlugin);
+  $: name = (profile?.name ?? 'Venkataraman TB').toUpperCase();
 
-    // Entrance timeline
-    const tl = gsap.timeline({ delay: 0.2 });
-    tl.fromTo('.hero-badge',   { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
-      .fromTo('.hero-name',    { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '-=0.3')
-      .fromTo('.hero-role',    { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.4')
-      .fromTo('.hero-bio',     { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3')
-      .fromTo('.hero-ctas',    { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.3')
-      .fromTo('.hero-socials', { opacity: 0 },         { opacity: 1, duration: 0.4 }, '-=0.2')
-      .fromTo('.hero-scroll',  { opacity: 0 },         { opacity: 1, duration: 0.4 }, '-=0.1');
+  function getSocial(platform) {
+    return socialLinks.find(l => l.platform?.toLowerCase() === platform)?.url ?? null;
+  }
 
-    // Role cycler
-    const cycleRole = () => {
-      gsap.to(roleEl, {
-        opacity: 0, y: -10, duration: 0.3, ease: 'power2.in',
-        onComplete: () => {
-          roleIdx = (roleIdx + 1) % roles.length;
-          currentRole = roles[roleIdx];
-          gsap.fromTo(roleEl, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
-        },
-      });
-    };
-    const interval = setInterval(cycleRole, 2800);
-
-    return () => clearInterval(interval);
-  });
+  onMount(() => { setTimeout(() => { visible = true; }, 80); });
 </script>
 
-<section id="home" class="relative min-h-screen flex items-center overflow-hidden">
-  <!-- Three.js background -->
-  <div class="absolute inset-0 z-0 opacity-60">
-    <NeuralCanvas />
+<section id="home" class="relative min-h-screen flex flex-col justify-center px-6 pb-20 pt-28 max-w-5xl mx-auto">
+
+  <!-- Available badge -->
+  <div class="mb-10 transition-all duration-700"
+       style="opacity: {visible ? 1 : 0}; transform: translateY({visible ? 0 : 16}px); transition-delay: 80ms">
+    <span class="inline-flex items-center gap-2 sec-num">
+      <span class="w-1.5 h-1.5 rounded-full {profile?.open_to_work !== false ? 'animate-pulse' : ''}"
+            style="background: {profile?.open_to_work !== false ? 'var(--accent)' : 'var(--muted)'}"></span>
+      {profile?.open_to_work !== false ? 'Available for opportunities' : 'Currently engaged'}
+    </span>
   </div>
 
-  <!-- Radial gradient overlay -->
-  <div class="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_rgba(167,139,250,0.08)_0%,_rgba(10,10,15,0)_70%)]"></div>
-
-  <!-- Grid lines -->
-  <div class="absolute inset-0 z-0 opacity-[0.03]"
-    style="background-image: linear-gradient(rgba(167,139,250,1) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,1) 1px, transparent 1px); background-size: 60px 60px;">
-  </div>
-
-  <div class="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-20 w-full">
-    <div class="max-w-3xl">
-      <!-- Badge -->
-      <div class="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium border border-primary/30 bg-primary/5 text-primary mb-6 opacity-0">
-        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-        {#if profile?.open_to_work}Available for opportunities{:else}Currently engaged{/if}
-      </div>
-
-      <!-- Name -->
-      <h1 class="hero-name text-6xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tight opacity-0 mb-4">
-        <span class="text-white">{profile?.name?.split(' ')[0] ?? 'Venkataraman'}</span>
-        <br />
-        <span class="gradient-text">{profile?.name?.split(' ').slice(1).join(' ') ?? 'TB'}</span>
-      </h1>
-
-      <!-- Animated role -->
-      <div class="hero-role flex items-center gap-3 mb-6 opacity-0">
-        <span class="w-8 h-px bg-primary"></span>
-        <span bind:this={roleEl} class="text-xl sm:text-2xl font-semibold text-primary font-mono">{currentRole}</span>
-      </div>
-
-      <!-- Bio -->
-      <p class="hero-bio text-lg text-slate-400 leading-relaxed max-w-xl mb-10 opacity-0">
-        {profile?.bio ?? 'I architect intelligent systems — from LLM-powered agents and ML pipelines to pixel-perfect iOS apps and high-throughput web backends.'}
-      </p>
-
-      <!-- CTAs -->
-      <div class="hero-ctas flex flex-wrap items-center gap-4 mb-12 opacity-0">
-        <a
-          href="#projects"
-          class="group px-8 py-3.5 rounded-full font-semibold text-dark bg-primary hover:bg-white transition-all duration-300 glow-primary"
-        >
-          View My Work
-          <span class="inline-block ml-2 transition-transform group-hover:translate-x-1">→</span>
-        </a>
-        {#if profile?.resume_url}
-          <a
-            href={profile.resume_url}
-            target="_blank"
-            class="px-8 py-3.5 rounded-full font-semibold text-white border border-white/20 hover:border-primary hover:text-primary glass transition-all duration-300"
-          >
-            Download CV
-          </a>
-        {:else}
-          <a
-            href="#contact"
-            class="px-8 py-3.5 rounded-full font-semibold text-white border border-white/20 hover:border-primary hover:text-primary glass transition-all duration-300"
-          >
-            Get In Touch
-          </a>
-        {/if}
-      </div>
-
-      <!-- Social links -->
-      <div class="hero-socials flex items-center gap-4 opacity-0">
-        {#each socialLinks as link}
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex items-center gap-2 text-sm text-slate-500 hover:text-white transition-colors duration-200"
-          >
-            <span class="capitalize">{link.platform}</span>
-          </a>
-        {/each}
-      </div>
+  <!-- Particle name canvas -->
+  <div class="mb-6 w-full transition-all duration-1000 relative"
+       style="opacity: {visible ? 1 : 0}; transition-delay: 160ms; z-index:1">
+    <ParticleText {name} color="var(--text)" gap={4} dotSize={2} speed={0.062} />
+    <div class="hero-canvas">
+      <!-- subtle neural canvas behind the particles -->
+      <NeuralCanvas />
     </div>
   </div>
 
-  <!-- Scroll indicator -->
-  <div class="hero-scroll absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-0">
-    <span class="text-xs text-slate-600 uppercase tracking-widest">Scroll</span>
-    <div class="w-px h-12 bg-gradient-to-b from-primary to-transparent animate-pulse"></div>
+  <!-- Tagline / role -->
+  <div class="mb-8 transition-all duration-700"
+       style="opacity: {visible ? 1 : 0}; transform: translateY({visible ? 0 : 20}px); transition-delay: 340ms">
+    <p class="sec-num text-[0.7rem] tracking-[0.18em]">
+      {profile?.tagline ?? 'AI Engineer · Full Stack Developer · iOS Dev · ML Engineer'}
+    </p>
+  </div>
+
+  <!-- Bio -->
+  <div class="mb-12 max-w-2xl transition-all duration-700"
+       style="opacity: {visible ? 1 : 0}; transform: translateY({visible ? 0 : 20}px); transition-delay: 460ms">
+    <p class="text-base leading-relaxed" style="color: var(--muted)">
+      {profile?.bio ?? 'I architect intelligent systems — LLM-powered agents, ML pipelines, pixel-perfect iOS apps, and high-throughput web backends.'}
+    </p>
+  </div>
+
+  <!-- Links row -->
+  <div class="flex flex-wrap items-center gap-x-8 gap-y-3 transition-all duration-700"
+       style="opacity: {visible ? 1 : 0}; transform: translateY({visible ? 0 : 20}px); transition-delay: 580ms">
+
+    {#if profile?.location}
+      <span class="sec-num">📍 {profile.location}</span>
+    {/if}
+
+    {#each socialLinks as link}
+      <a href={link.url} target="_blank" rel="noopener noreferrer"
+         class="sec-num hover:text-[var(--text)] transition-colors duration-200">
+        {link.platform}
+      </a>
+    {/each}
+
+    {#if profile?.email && !socialLinks.find(l => l.platform?.toLowerCase() === 'email')}
+      <a href="mailto:{profile.email}"
+         class="sec-num hover:text-[var(--text)] transition-colors duration-200">Email</a>
+    {/if}
+
+    <a href="#projects" class="ml-auto group sec-num hover:text-[var(--text)] transition-colors duration-200">
+      View work <span class="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
+    </a>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="absolute bottom-10 left-6 flex flex-col items-start gap-2 transition-all duration-700"
+       style="opacity: {visible ? 1 : 0}; transition-delay: 900ms">
+    <span class="sec-num" style="font-size:0.6rem; color: var(--border)">SCROLL</span>
+    <div class="w-px h-12 overflow-hidden" style="background: var(--border)">
+      <div class="w-full h-full scroll-cue" style="background: var(--muted)"></div>
+    </div>
   </div>
 </section>
