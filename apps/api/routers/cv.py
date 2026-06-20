@@ -77,7 +77,8 @@ Return exactly this JSON structure:
 
 Rules:
 - Skill proficiency: estimate 70-95 based on depth of usage described
-- Skill categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Languages", "Cloud", "Tools""""
+- Skill categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Languages", "Cloud", "Tools"
+"""
 
     response = await model.generate_content_async(prompt)
     return json.loads(response.text)
