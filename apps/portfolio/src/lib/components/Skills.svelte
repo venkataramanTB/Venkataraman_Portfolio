@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { gsap } from 'gsap';
 
   export let skills = [];
@@ -24,7 +25,7 @@
     });
   }
 
-  $: if (filtered) setTimeout(animateBars, 50);
+  $: if (browser && filtered) setTimeout(animateBars, 50);
 </script>
 
 <section id="skills" class="section-pad relative overflow-hidden">

@@ -1,12 +1,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import * as THREE from 'three';
 
   let canvas;
   let animId;
   let renderer, scene, camera;
 
-  onMount(() => {
+  onMount(async () => {
+    const THREE = await import('three');
+
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
     camera.position.z = 5;
