@@ -14,6 +14,7 @@
     { href: '/dashboard/education',    label: 'Education',     icon: '🎓' },
     { href: '/dashboard/stats',        label: 'Stats',         icon: '📊' },
     { href: '/dashboard/social',       label: 'Social Links',  icon: '🔗' },
+    { href: '/dashboard/cv',           label: 'CV Import',     icon: '📄' },
   ];
 
   function handleLogout() {

@@ -27,7 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Syntax check
-        run: python -m py_compile main.py database.py models.py schemas.py auth.py config.py
+        run: python -m py_compile main.py database.py models.py schemas.py auth.py config.py routers/cv.py routers/chat.py
 
       - name: Security scan (bandit)
         run: |

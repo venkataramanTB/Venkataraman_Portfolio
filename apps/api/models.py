@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Float, JSON
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Float, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 from database import Base
 
 
@@ -121,3 +123,23 @@ class Stat(Base):
     suffix = Column(String(20))
     icon = Column(String(100))
     display_order = Column(Integer, default=0)
+
+
+class CVDocument(Base):
+    __tablename__ = "cv_documents"
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255))
+    raw_text = Column(Text)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_active = Column(Boolean, default=True)
+    chunks = relationship("CVChunk", back_populates="document", cascade="all, delete-orphan")
+
+
+class CVChunk(Base):
+    __tablename__ = "cv_chunks"
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("cv_documents.id"))
+    chunk_text = Column(Text)
+    chunk_index = Column(Integer)
+    embedding = Column(Vector(1536), nullable=True)
+    document = relationship("CVDocument", back_populates="chunks")

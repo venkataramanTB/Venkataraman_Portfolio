@@ -39,4 +39,23 @@ export const api = {
   create: (resource, b) => req('POST',   `/admin/${resource}`, b),
   update: (resource, id, b) => req('PUT', `/admin/${resource}/${id}`, b),
   remove: (resource, id) => req('DELETE', `/admin/${resource}/${id}`),
+
+  // CV Import
+  getCVStatus: () => req('GET', '/admin/cv'),
+  syncLinkedIn: (linkedin_url) => req('POST', '/admin/cv/linkedin', { linkedin_url }),
+  uploadCV: async (file) => {
+    const t = get(token);
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${BASE}/admin/cv/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${t}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d?.detail ?? `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
 };

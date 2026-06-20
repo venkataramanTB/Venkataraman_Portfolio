@@ -198,3 +198,33 @@ class PortfolioData(BaseModel):
     achievements: List[AchievementOut] = []
     education: List[EducationOut] = []
     stats: List[StatOut] = []
+
+
+# ── CV / Chat ──────────────────────────────────────────────────────────────────
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+
+class CVStatus(BaseModel):
+    has_cv: bool
+    filename: Optional[str] = None
+    uploaded_at: Optional[datetime] = None
+    chunks_count: int = 0
+    has_embeddings: bool = False
+
+class CVImportResult(BaseModel):
+    profiles_created: int = 0
+    skills_created: int = 0
+    experiences_created: int = 0
+    education_created: int = 0
+    certificates_created: int = 0
+    achievements_created: int = 0
+    chunks_embedded: int = 0
+    message: str = ""
+
+class LinkedInSyncRequest(BaseModel):
+    linkedin_url: str

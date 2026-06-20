@@ -1,13 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 from database import engine, Base
 from config import settings
 from routers import auth, portfolio, crud
+from routers import cv, chat
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
     Base.metadata.create_all(bind=engine)
     yield
 
@@ -34,6 +39,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(portfolio.router)
 app.include_router(crud.router)
+app.include_router(cv.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")
