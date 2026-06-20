@@ -10,8 +10,7 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "venkataraman.tb@mythics.com"
     ADMIN_PASSWORD: str = "changeme"
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:5174"
-    ANTHROPIC_API_KEY: str = ""
-    OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     PROXYCURL_API_KEY: str = ""
 
     @property

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 import json
+import asyncio
 import httpx
 
 from database import get_db
@@ -25,18 +26,25 @@ def parse_pdf(file_bytes: bytes) -> str:
     return "\n\n".join(pages)
 
 
-# ── Claude extraction ──────────────────────────────────────────────────────────
+# ── Gemini extraction ──────────────────────────────────────────────────────────
 
-async def claude_extract(cv_text: str) -> dict:
-    import anthropic
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+async def gemini_extract(cv_text: str) -> dict:
+    import google.generativeai as genai
 
-    prompt = f"""Parse this CV and return ONLY valid JSON (no markdown fences, no explanation).
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json",
+        ),
+    )
+
+    prompt = f"""Parse this CV/resume and return structured JSON.
 
 CV:
 {cv_text[:12000]}
 
-JSON structure required:
+Return exactly this JSON structure:
 {{
   "profile": {{
     "name": "...", "tagline": "Short professional title", "bio": "2-3 sentence summary",
@@ -69,23 +77,13 @@ JSON structure required:
 
 Rules:
 - Skill proficiency: estimate 70-95 based on depth of usage described
-- Skill categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Languages", "Cloud", "Tools"
-- Return ONLY the JSON object, nothing else"""
+- Skill categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Languages", "Cloud", "Tools""""
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw = msg.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    return json.loads(raw.strip())
+    response = await model.generate_content_async(prompt)
+    return json.loads(response.text)
 
 
-# ── Chunking + embedding ───────────────────────────────────────────────────────
+# ── Chunking + Gemini embeddings ───────────────────────────────────────────────
 
 def chunk_text(text: str, size: int = 900, overlap: int = 150) -> list[str]:
     chunks, start = [], 0
@@ -96,15 +94,22 @@ def chunk_text(text: str, size: int = 900, overlap: int = 150) -> list[str]:
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]] | None:
-    if not settings.OPENAI_API_KEY:
+    import google.generativeai as genai
+
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+
+    def _batch(batch):
+        result = genai.embed_content(
+            model="models/text-embedding-004",
+            content=[t[:8000] for t in batch],
+            task_type="retrieval_document",
+        )
+        return result["embedding"]
+
+    try:
+        return await asyncio.to_thread(_batch, texts)
+    except Exception:
         return None
-    from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-    resp = await client.embeddings.create(
-        model="text-embedding-3-small",
-        input=[t[:8000] for t in texts],
-    )
-    return [d.embedding for d in resp.data]
 
 
 # ── DB population ──────────────────────────────────────────────────────────────
@@ -208,8 +213,8 @@ async def upload_cv(
     db: Session = Depends(get_db),
     _=Depends(get_current_admin),
 ):
-    if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(400, "ANTHROPIC_API_KEY is not configured on the server")
+    if not settings.GEMINI_API_KEY:
+        raise HTTPException(400, "GEMINI_API_KEY is not configured on the server")
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are accepted")
 
@@ -219,7 +224,6 @@ async def upload_cv(
     except Exception as e:
         raise HTTPException(400, f"Could not parse PDF: {e}")
 
-    # Deactivate previous CV
     db.query(CVDocument).update({"is_active": False})
     cv_doc = CVDocument(filename=file.filename, raw_text=raw_text, is_active=True)
     db.add(cv_doc)
@@ -227,13 +231,12 @@ async def upload_cv(
     db.refresh(cv_doc)
 
     try:
-        extracted = await claude_extract(raw_text)
+        extracted = await gemini_extract(raw_text)
     except Exception as e:
         raise HTTPException(500, f"AI extraction failed: {e}")
 
     result = populate_db(db, extracted)
 
-    # Chunk + embed
     texts = chunk_text(raw_text)
     embeddings = await embed_texts(texts)
     for i, text in enumerate(texts):
@@ -263,7 +266,6 @@ async def sync_linkedin(
 ):
     url = body.linkedin_url.strip()
 
-    # Always save/update as social link
     existing = db.query(SocialLink).filter_by(platform="LinkedIn").first()
     if existing:
         existing.url = url
@@ -298,9 +300,7 @@ async def sync_linkedin(
     def _date(obj, field="starts_at"):
         d = (obj or {}).get(field) or {}
         m, y = d.get("month", ""), d.get("year", "")
-        if y:
-            return f"{m}/{y}" if m else str(y)
-        return None
+        return f"{m}/{y}" if (y and m) else (str(y) if y else None)
 
     data = {
         "profile": {
@@ -314,10 +314,8 @@ async def sync_linkedin(
             {
                 "company": e.get("company"), "role": e.get("title"),
                 "description": e.get("description"),
-                "start_date": _date(e, "starts_at"),
-                "end_date": _date(e, "ends_at"),
-                "is_current": e.get("ends_at") is None,
-                "technologies": [],
+                "start_date": _date(e, "starts_at"), "end_date": _date(e, "ends_at"),
+                "is_current": e.get("ends_at") is None, "technologies": [],
             }
             for e in (li.get("experiences") or [])
         ],

@@ -141,5 +141,5 @@ class CVChunk(Base):
     document_id = Column(Integer, ForeignKey("cv_documents.id"))
     chunk_text = Column(Text)
     chunk_index = Column(Integer)
-    embedding = Column(Vector(1536), nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     document = relationship("CVDocument", back_populates="chunks")
