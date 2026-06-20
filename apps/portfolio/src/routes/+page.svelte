@@ -22,17 +22,6 @@
     education,
     stats,
   } = data);
-
-  import { onMount } from 'svelte';
-  import { fetchPortfolio } from '$lib/api.js';
-
-  onMount(async () => {
-    // client-side fetch to populate dynamic data (avoids SSR dependency)
-    const fetched = await fetchPortfolio().catch(() => null);
-    if (fetched) {
-      data = fetched;
-    }
-  });
 </script>
 
 <svelte:head>
