@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.local
+.env.production
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.svelte-kit/
+build/
+dist/
+.vercel/
+*.egg-info/
+.DS_Store
+Thumbs.db

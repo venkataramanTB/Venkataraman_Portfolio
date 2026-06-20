@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Portfolio frontend
+  - package-ecosystem: npm
+    directory: /apps/portfolio
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, portfolio]
+    open-pull-requests-limit: 5
+
+  # Admin frontend
+  - package-ecosystem: npm
+    directory: /apps/admin
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, admin]
+    open-pull-requests-limit: 5
+
+  # Python API
+  - package-ecosystem: pip
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, api]
+    open-pull-requests-limit: 5
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]

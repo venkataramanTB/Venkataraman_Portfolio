@@ -1,0 +1,12 @@
+{
+  "name": "venkataraman-portfolio",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:portfolio": "npm run dev --workspace=apps/portfolio",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "dev:api": "cd apps/api && uvicorn main:app --reload --port 8000",
+    "build:portfolio": "npm run build --workspace=apps/portfolio",
+    "build:admin": "npm run build --workspace=apps/admin"
+  }
+}

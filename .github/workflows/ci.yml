@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Python API ──────────────────────────────────────────────────────────────
+  api:
+    name: API (FastAPI)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax check
+        run: python -m py_compile main.py database.py models.py schemas.py auth.py config.py
+
+      - name: Security scan (bandit)
+        run: |
+          pip install bandit
+          bandit -r . -x ./seed.py -ll 2>&1 || true
+
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check . --ignore E501 2>&1 || true
+
+  # ── Portfolio (SvelteKit) ───────────────────────────────────────────────────
+  portfolio:
+    name: Portfolio (SvelteKit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/portfolio
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/portfolio/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build check
+        env:
+          PUBLIC_API_URL: https://placeholder.onrender.com
+        run: npm run build
+
+  # ── Admin (SvelteKit) ───────────────────────────────────────────────────────
+  admin:
+    name: Admin (SvelteKit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/admin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/admin/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build check
+        env:
+          PUBLIC_API_URL: https://placeholder.onrender.com
+        run: npm run build
