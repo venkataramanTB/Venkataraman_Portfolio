@@ -1,9 +1,11 @@
-import { PUBLIC_API_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
-const BASE = PUBLIC_API_URL || 'http://localhost:8000';
+const BASE = (env.PUBLIC_API_URL ?? '').replace(/\/$/, '') || 'http://localhost:8000';
 
 export async function fetchPortfolio() {
-  const res = await fetch(`${BASE}/portfolio`);
-  if (!res.ok) throw new Error('Failed to fetch portfolio data');
+  const res = await fetch(`${BASE}/portfolio`, {
+    next: { revalidate: 60 },
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
   return res.json();
 }

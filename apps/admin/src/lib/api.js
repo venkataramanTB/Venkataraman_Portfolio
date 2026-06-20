@@ -1,8 +1,8 @@
-import { PUBLIC_API_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { token } from '$lib/stores/auth.js';
 import { get } from 'svelte/store';
 
-const BASE = PUBLIC_API_URL || 'http://localhost:8000';
+const BASE = (env.PUBLIC_API_URL ?? '').replace(/\/$/, '') || 'http://localhost:8000';
 
 function authHeaders() {
   const t = get(token);

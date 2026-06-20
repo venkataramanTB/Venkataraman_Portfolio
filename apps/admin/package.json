@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite dev --port 5174",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json"
   },
   "devDependencies": {
     "@sveltejs/adapter-vercel": "^5.4.0",
@@ -19,7 +20,7 @@
   },
   "dependencies": {
     "gsap": "^3.12.5",
-    "lucide-svelte": "^0.460.0"
+    "@lucide/svelte": "^0.511.0"
   },
   "type": "module"
 }
