@@ -12,15 +12,16 @@
 
   const GREETING = "Hi! I'm Venkataraman's AI assistant. Ask me anything about his skills, experience, projects, or achievements! 👋";
 
-  onMount(() => {
+  onMount(async () => {
     mounted = true;
     messages = [{ role: 'assistant', content: GREETING }];
-
-    // Entrance animation for the button
-    gsap.fromTo(btnEl,
-      { scale: 0, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)', delay: 2 }
-    );
+    await tick();
+    if (btnEl) {
+      gsap.fromTo(btnEl,
+        { scale: 0, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)', delay: 2 }
+      );
+    }
   });
 
   async function toggle() {
@@ -168,7 +169,7 @@
             <span class="text-white text-sm font-bold">↑</span>
           </button>
         </div>
-        <p class="text-[10px] text-slate-700 mt-2 text-center">Powered by Claude · Answers based on Venkataraman's CV</p>
+        <p class="text-[10px] text-slate-700 mt-2 text-center">Powered by Gemini · Answers based on Venkataraman's CV</p>
       </div>
     </div>
   {/if}

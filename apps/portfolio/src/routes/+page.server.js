@@ -1,4 +1,4 @@
-import { fetchPortfolio } from '$lib/api.js';
+import { BASE } from '$lib/api.js';
 
 const EMPTY = {
   profile: null,
@@ -13,6 +13,14 @@ const EMPTY = {
 };
 
 export async function load() {
-  const data = await fetchPortfolio().catch(() => null);
-  return data ?? EMPTY;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4500);
+    const res = await fetch(`${BASE}/portfolio`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return EMPTY;
+    return await res.json();
+  } catch {
+    return EMPTY;
+  }
 }
