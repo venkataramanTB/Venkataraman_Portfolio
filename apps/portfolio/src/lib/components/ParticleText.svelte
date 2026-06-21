@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
 
   export let text    = '';
   export let color   = '#ebebeb';
@@ -131,8 +132,10 @@
   });
 
   onDestroy(() => {
-    cancelAnimationFrame(raf);
-    ro?.disconnect();
+    if (browser) {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+    }
   });
 </script>
 

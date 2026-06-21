@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
 
   let canvas;
   let animId;
@@ -134,8 +135,10 @@
   });
 
   onDestroy(() => {
-    if (animId) cancelAnimationFrame(animId);
-    if (renderer) renderer.dispose();
+    if (browser) {
+      if (animId) cancelAnimationFrame(animId);
+      if (renderer) renderer.dispose();
+    }
   });
 </script>
 
