@@ -139,4 +139,4 @@
   });
 </script>
 
-<canvas bind:this={canvas} class="w-full h-full block" />
+<canvas bind:this={canvas} class="w-full h-full block"></canvas>
