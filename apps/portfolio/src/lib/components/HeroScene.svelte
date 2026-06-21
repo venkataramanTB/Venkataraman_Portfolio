@@ -61,8 +61,8 @@
 
     // ── Camera ────────────────────────────────────────────────────────────────
     camera = new THREE.PerspectiveCamera(46, w / h, 0.1, 100);
-    camera.position.set(0.6, 2.1, 10);
-    camera.lookAt(0, 1.1, 0);
+    camera.position.set(0, 2.5, 10);
+    camera.lookAt(0, 1.3, 0);
 
     // ── Lighting ──────────────────────────────────────────────────────────────
     // Soft ambient (IBL handles most diffuse)
@@ -127,53 +127,52 @@
     // ── 3D Text ───────────────────────────────────────────────────────────────
     const fontLoader = new FontLoader();
     fontLoader.load(
-      'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts/helvetiker_bold.typeface.json',
+      // optimer_bold: elegant serif with thin/thick stroke contrast — much more artistic
+      // than helvetiker; the serifs catch light beautifully at depth
+      'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts/optimer_bold.typeface.json',
       (font) => {
         // ── Headline ───────────────────────────────────────────────────────
         const g1 = new TextGeometry(line1, {
           font,
-          size:           0.70,
-          depth:          0.18,
-          curveSegments:  12,
+          size:           0.72,
+          depth:          0.28,          // deeper = more dramatic shadow play
+          curveSegments:  14,            // smoother curves on serifs
           bevelEnabled:   true,
-          bevelThickness: 0.022,
-          bevelSize:      0.012,
-          bevelSegments:  5,
+          bevelThickness: 0.042,         // thick bevel = more light-catching chamfer
+          bevelSize:      0.022,
+          bevelSegments:  8,
         });
         g1.computeBoundingBox();
         line1Width = g1.boundingBox.max.x - g1.boundingBox.min.x;
-        // Center headline on X
         g1.translate(-line1Width / 2, 0, 0);
 
         const m1 = new THREE.Mesh(g1, [matFront, matSide]);
         m1.castShadow = m1.receiveShadow = true;
-        // Start below ground, GSAP rises it into place
-        m1.position.y = 1.48 - 4;
+        m1.position.y = 1.52 - 4;
         scene.add(m1);
-        _gsap.to(m1.position, { y: 1.48, duration: 1.6, delay: 0.3, ease: 'power3.out' });
+        _gsap.to(m1.position, { y: 1.52, duration: 1.6, delay: 0.3, ease: 'power3.out' });
 
         // ── Sub-mark "TB" — smaller, right-flush ───────────────────────────
         if (line2) {
           const g2 = new TextGeometry(line2, {
             font,
-            size:           0.40,
-            depth:          0.09,
+            size:           0.42,
+            depth:          0.12,
             curveSegments:  10,
             bevelEnabled:   true,
-            bevelThickness: 0.013,
-            bevelSize:      0.007,
-            bevelSegments:  4,
+            bevelThickness: 0.018,
+            bevelSize:      0.009,
+            bevelSegments:  5,
           });
           g2.computeBoundingBox();
           const l2w = g2.boundingBox.max.x - g2.boundingBox.min.x;
-          // Right-align flush with headline's right edge
           g2.translate(line1Width / 2 - l2w, 0, 0);
 
           const m2 = new THREE.Mesh(g2, [subFront, subSide]);
           m2.castShadow = m2.receiveShadow = true;
-          m2.position.y = 0.82 - 4;
+          m2.position.y = 0.86 - 4;
           scene.add(m2);
-          _gsap.to(m2.position, { y: 0.82, duration: 1.6, delay: 0.52, ease: 'power3.out' });
+          _gsap.to(m2.position, { y: 0.86, duration: 1.6, delay: 0.52, ease: 'power3.out' });
         }
 
         placeAvatar?.(line1Width);
@@ -193,13 +192,15 @@
         const box    = new THREE.Box3().setFromObject(model);
         const size   = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
-        const s      = 2.55 / size.y;   // slightly taller = more presence
+        // Scale so avatar is ~2.7 units tall — head peeks above the letters
+        const s      = 2.7 / size.y;
 
         model.scale.setScalar(s);
+        // Center on X and Z, feet at y=0
         model.position.set(-center.x * s, -box.min.y * s, -center.z * s);
         modelBaseY = model.position.y;
 
-        // Rotate to face camera
+        // Face camera
         model.rotation.y = Math.PI;
 
         model.traverse(c => {
@@ -209,13 +210,13 @@
         scene.add(model);
         modelRef = model;
 
-        // Plant avatar at the left edge of "V", in front of the text plane
-        const doPlace = (tw) => {
-          model.position.x = -(tw / 2) - 0.28;
-          model.position.z = 0.55;
-        };
-        placeAvatar = doPlace;
-        if (line1Width > 0) doPlace(line1Width);
+        // Center avatar behind the text (z = -0.65 puts it behind the text plane at z=0)
+        // The letter gaps + bevel edges frame the body; head peeks above the headline
+        model.position.x = 0;
+        model.position.z = -0.65;
+        // placeAvatar still called for cross-load but position is fixed
+        placeAvatar = () => {};
+        if (line1Width > 0) placeAvatar(line1Width);
 
         if (gltf.animations.length) {
           mixer = new THREE.AnimationMixer(model);
@@ -246,10 +247,10 @@
 
       mixer?.update(dt);
 
-      // Restrained parallax — enough to feel 3D, not seasick
-      camera.position.x += (0.6 + mx * 0.65 - camera.position.x) * 0.038;
-      camera.position.y += (2.1 - my * 0.32 - camera.position.y) * 0.038;
-      camera.lookAt(0, 1.1, 0);
+      // Restrained parallax
+      camera.position.x += (mx * 0.6 - camera.position.x) * 0.038;
+      camera.position.y += (2.5 - my * 0.3 - camera.position.y) * 0.038;
+      camera.lookAt(0, 1.3, 0);
 
       // Avatar: very subtle idle (professional, not cartoonish)
       if (modelRef) {
