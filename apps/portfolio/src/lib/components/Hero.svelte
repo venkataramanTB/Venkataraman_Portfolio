@@ -1,8 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { useGSAP } from '$lib/gsap.js';
-  import ParticleText from './ParticleText.svelte';
-  import NeuralCanvas  from './NeuralCanvas.svelte';
+  import Hero3D from './Hero3D.svelte';
 
   export let profile     = null;
   export let socialLinks = [];
@@ -11,10 +10,6 @@
   let ctx;
 
   $: name = (profile?.name ?? 'Venkataraman TB').toUpperCase();
-
-  function getSocial(platform) {
-    return socialLinks.find(l => l.platform?.toLowerCase() === platform)?.url ?? null;
-  }
 
   onMount(async () => {
     const g = await useGSAP();
@@ -27,7 +22,7 @@
       // Availability badge
       tl.from(badgeEl, { opacity: 0, y: 22, duration: 0.6, ease: 'power3.out' })
 
-      // Name canvas wrapper fades in (ParticleText handles its own particle animation)
+      // 3D canvas wrapper fades in (Hero3D handles its own particle entrance)
         .from(nameWrapEl, { opacity: 0, duration: 0.9, ease: 'power2.out' }, '-=0.2')
 
       // Tagline: each segment staggered
@@ -64,12 +59,9 @@
     </span>
   </div>
 
-  <!-- Particle name (canvas) -->
+  <!-- 3D particle name -->
   <div bind:this={nameWrapEl} class="mb-6 w-full relative" style="z-index:1">
-    <ParticleText {name} color="var(--text)" gap={4} dotSize={2} speed={0.062} />
-    <div class="hero-canvas">
-      <NeuralCanvas />
-    </div>
+    <Hero3D {name} />
   </div>
 
   <!-- Tagline with individual segments -->
