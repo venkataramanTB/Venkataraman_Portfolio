@@ -17,16 +17,15 @@
     const { gsap } = g;
 
     ctx = gsap.context(() => {
-      // Delay until after the 3D scene entrance (1.5s + 0.4s delay = ~2s)
-      const tl = gsap.timeline({ delay: 2.1 });
-
-      tl.from(badgeEl, { opacity: 0, y: 16, duration: 0.5, ease: 'power3.out' })
+      // Sequence starts after the 3D text entrance completes (~1.9s total)
+      const tl = gsap.timeline({ delay: 2.2 });
+      tl.from(badgeEl, { opacity: 0, y: 10, duration: 0.45 })
         .from(tagEl?.querySelectorAll('.tag-seg'),
-          { opacity: 0, y: 12, duration: 0.45, stagger: 0.08, ease: 'power3.out' }, '-=0.2')
-        .from(bioEl, { opacity: 0, y: 16, duration: 0.5, ease: 'power3.out' }, '-=0.25')
+          { opacity: 0, y: 10, duration: 0.4, stagger: 0.07 }, '-=0.2')
+        .from(bioEl,  { opacity: 0, y: 12, duration: 0.45 }, '-=0.2')
         .from(linksEl?.children ?? [],
-          { opacity: 0, y: 12, duration: 0.4, stagger: 0.06, ease: 'power3.out' }, '-=0.2')
-        .from(scrollEl, { opacity: 0, duration: 0.4 }, '-=0.1');
+          { opacity: 0, y: 10, duration: 0.38, stagger: 0.05 }, '-=0.2')
+        .from(scrollEl, { opacity: 0, duration: 0.35 }, '-=0.1');
     });
   });
 
@@ -35,44 +34,45 @@
 
 <section id="home" class="relative min-h-screen">
 
-  <!-- 3D scene: full bleed (no horizontal padding) -->
-  <div class="w-full pt-20">
+  <!-- Availability badge — absolute over top-left of canvas -->
+  <div bind:this={badgeEl}
+       class="absolute top-24 left-6 z-10">
+    <span class="inline-flex items-center gap-2 sec-num">
+      <span class="w-1.5 h-1.5 rounded-full {profile?.open_to_work !== false ? 'animate-pulse' : ''}"
+            style="background:{profile?.open_to_work !== false ? 'var(--accent)' : 'var(--muted)'}"></span>
+      {profile?.open_to_work !== false ? 'Available for opportunities' : 'Currently engaged'}
+    </span>
+  </div>
+
+  <!-- 3D scene: full bleed, top of page -->
+  <div class="w-full pt-16">
     <HeroScene {name} />
   </div>
 
   <!-- Text content below the 3D canvas -->
-  <div class="px-6 max-w-5xl mx-auto mt-10 pb-24">
-
-    <!-- Availability badge -->
-    <div bind:this={badgeEl} class="mb-7">
-      <span class="inline-flex items-center gap-2 sec-num">
-        <span class="w-1.5 h-1.5 rounded-full {profile?.open_to_work !== false ? 'animate-pulse' : ''}"
-              style="background: {profile?.open_to_work !== false ? 'var(--accent)' : 'var(--muted)'}"></span>
-        {profile?.open_to_work !== false ? 'Available for opportunities' : 'Currently engaged'}
-      </span>
-    </div>
+  <div class="px-6 max-w-5xl mx-auto mt-10 pb-28">
 
     <!-- Tagline -->
     <div bind:this={tagEl} class="mb-7">
-      <p class="sec-num text-[0.7rem] tracking-[0.18em] flex flex-wrap gap-x-2 gap-y-1">
+      <p class="sec-num text-[0.65rem] tracking-[0.2em] flex flex-wrap gap-x-3 gap-y-1">
         <span class="tag-seg">AI Engineer</span>
-        <span class="tag-seg" style="color: var(--border)">·</span>
+        <span class="tag-seg" style="color:var(--border)">·</span>
         <span class="tag-seg">Full Stack Developer</span>
-        <span class="tag-seg" style="color: var(--border)">·</span>
+        <span class="tag-seg" style="color:var(--border)">·</span>
         <span class="tag-seg">iOS Dev</span>
-        <span class="tag-seg" style="color: var(--border)">·</span>
+        <span class="tag-seg" style="color:var(--border)">·</span>
         <span class="tag-seg">ML Engineer</span>
       </p>
     </div>
 
     <!-- Bio -->
     <div bind:this={bioEl} class="mb-10 max-w-2xl">
-      <p class="text-base leading-relaxed" style="color: var(--muted)">
+      <p class="text-base leading-relaxed" style="color:var(--muted)">
         {profile?.bio ?? 'I architect intelligent systems — LLM-powered agents, ML pipelines, pixel-perfect iOS apps, and high-throughput web backends.'}
       </p>
     </div>
 
-    <!-- Links row -->
+    <!-- Links -->
     <div bind:this={linksEl} class="flex flex-wrap items-center gap-x-8 gap-y-3">
       {#if profile?.location}
         <span class="sec-num">📍 {profile.location}</span>
@@ -80,7 +80,7 @@
 
       {#each socialLinks as link}
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-           class="sec-num hover:text-[var(--text)] hover:text-gradient transition-colors duration-200">
+           class="sec-num hover:text-[var(--text)] transition-colors duration-200">
           {link.platform}
         </a>
       {/each}
@@ -90,7 +90,8 @@
            class="sec-num hover:text-[var(--text)] transition-colors duration-200">Email</a>
       {/if}
 
-      <a href="#projects" class="ml-auto group sec-num hover:text-[var(--text)] transition-colors duration-200">
+      <a href="#projects"
+         class="ml-auto group sec-num hover:text-[var(--text)] transition-colors duration-200">
         View work
         <span class="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
       </a>
@@ -101,9 +102,9 @@
   <!-- Scroll cue -->
   <div bind:this={scrollEl}
        class="absolute bottom-10 left-6 flex flex-col items-start gap-2">
-    <span class="sec-num" style="font-size:0.6rem; color: var(--border)">SCROLL</span>
-    <div class="w-px h-12 overflow-hidden" style="background: var(--border)">
-      <div class="w-full h-full scroll-cue" style="background: var(--muted)"></div>
+    <span class="sec-num" style="font-size:0.6rem;color:var(--border)">SCROLL</span>
+    <div class="w-px h-12 overflow-hidden" style="background:var(--border)">
+      <div class="w-full h-full scroll-cue" style="background:var(--muted)"></div>
     </div>
   </div>
 

@@ -5,32 +5,41 @@
 
   export let name = 'VENKATARAMAN TB';
 
-  let canvasEl;
-  let raf;
+  let canvasEl, raf;
   let renderer, scene, camera;
   let _gsap;
   let mx = 0, my = 0;
 
-  function onMouseMove(e) {
+  const onMouseMove = (e) => {
     mx = (e.clientX / window.innerWidth  - 0.5) * 2;
     my = (e.clientY / window.innerHeight - 0.5) * 2;
-  }
+  };
 
   onMount(async () => {
     if (!browser) return;
 
-    const [THREE, gResult, { FontLoader }, { TextGeometry }, { GLTFLoader }] = await Promise.all([
+    // Editorial split: "VENKATARAMAN" headline + "TB" sub-mark
+    const parts = name.trim().split(' ');
+    const line1 = parts[0];
+    const line2 = parts.slice(1).join(' ');
+
+    const [
+      THREE, gResult,
+      { FontLoader }, { TextGeometry },
+      { GLTFLoader },  { RoomEnvironment },
+    ] = await Promise.all([
       import('three'),
       useGSAP(),
       import('three/examples/jsm/loaders/FontLoader.js'),
       import('three/examples/jsm/geometries/TextGeometry.js'),
       import('three/examples/jsm/loaders/GLTFLoader.js'),
+      import('three/examples/jsm/environments/RoomEnvironment.js'),
     ]);
     if (!gResult) return;
     _gsap = gResult.gsap;
 
-    const w = canvasEl.offsetWidth  || 900;
-    const h = canvasEl.offsetHeight || 520;
+    const w = canvasEl.offsetWidth  || 960;
+    const h = canvasEl.offsetHeight || 580;
 
     // ── Renderer ─────────────────────────────────────────────────────────────
     renderer = new THREE.WebGLRenderer({ canvas: canvasEl, alpha: true, antialias: true });
@@ -38,154 +47,176 @@
     renderer.setSize(w, h);
     renderer.outputColorSpace    = THREE.SRGBColorSpace;
     renderer.toneMapping         = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 0.95;
     renderer.shadowMap.enabled   = true;
     renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
 
-    // ── Scene + Camera ────────────────────────────────────────────────────────
-    scene  = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    camera.position.set(0, 1.8, 10);
-    camera.lookAt(0, 1.2, 0);
+    // ── Scene ─────────────────────────────────────────────────────────────────
+    scene = new THREE.Scene();
+
+    // IBL — image-based lighting makes metallic materials look physically real
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+
+    // ── Camera ────────────────────────────────────────────────────────────────
+    camera = new THREE.PerspectiveCamera(46, w / h, 0.1, 100);
+    camera.position.set(0.6, 2.1, 10);
+    camera.lookAt(0, 1.1, 0);
 
     // ── Lighting ──────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    // Soft ambient (IBL handles most diffuse)
+    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
-    const key = new THREE.DirectionalLight(0xfff8f0, 2.2);
-    key.position.set(4, 8, 6);
-    key.castShadow           = true;
-    key.shadow.mapSize.width = key.shadow.mapSize.height = 1024;
+    // Key: warm, slightly above and to the right
+    const key = new THREE.DirectionalLight(0xfff2e0, 2.0);
+    key.position.set(6, 10, 8);
+    key.castShadow = true;
+    key.shadow.mapSize.setScalar(2048);
+    key.shadow.bias = -0.001;
     scene.add(key);
 
-    // Cyan rim — comes from behind-left
-    const rimCyan = new THREE.DirectionalLight(0x06b6d4, 2.0);
-    rimCyan.position.set(-6, 3, -5);
-    scene.add(rimCyan);
+    // Cool rim: defines silhouette from back-left
+    const rim = new THREE.DirectionalLight(0x8ab0cc, 0.6);
+    rim.position.set(-8, 4, -6);
+    scene.add(rim);
 
-    // Violet fill — behind-right
-    const fillViolet = new THREE.DirectionalLight(0x8b5cf6, 1.1);
-    fillViolet.position.set(6, 0, -4);
-    scene.add(fillViolet);
+    // Soft front fill: lifts deep shadows without adding color
+    const fill = new THREE.DirectionalLight(0xffffff, 0.22);
+    fill.position.set(0, -3, 6);
+    scene.add(fill);
 
-    // Glow point behind text
-    const textGlow = new THREE.PointLight(0x06b6d4, 2.8, 8);
-    textGlow.position.set(0, 1.6, 1.8);
-    scene.add(textGlow);
-
-    // Shadow-catcher plane
+    // Transparent shadow catcher
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 40),
-      new THREE.ShadowMaterial({ opacity: 0.2 }),
+      new THREE.PlaneGeometry(50, 50),
+      new THREE.ShadowMaterial({ opacity: 0.10 }),
     );
-    ground.rotation.x = -Math.PI / 2;
+    ground.rotation.x  = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // ── Cross-load coordination ───────────────────────────────────────────────
-    let textWidth      = 0;
-    let placeAvatarFn  = null; // called once textWidth is known
+    // ── Materials: polished chrome ────────────────────────────────────────────
+    // Front faces: cool platinum-silver
+    const matFront = new THREE.MeshStandardMaterial({
+      color:     0xcdd4e0,
+      metalness: 0.90,
+      roughness: 0.07,
+    });
+    // Extruded sides: darker steel (creates depth)
+    const matSide = new THREE.MeshStandardMaterial({
+      color:     0x50596a,
+      metalness: 0.93,
+      roughness: 0.05,
+    });
+    // "TB" sub-mark — dimmer, recedes behind headline
+    const subFront = new THREE.MeshStandardMaterial({
+      color:     0x8890a0,
+      metalness: 0.85,
+      roughness: 0.15,
+    });
+    const subSide = new THREE.MeshStandardMaterial({
+      color:     0x303540,
+      metalness: 0.90,
+      roughness: 0.10,
+    });
 
-    // ── 3D Extruded Text ──────────────────────────────────────────────────────
+    // ── Cross-load state ──────────────────────────────────────────────────────
+    let line1Width  = 0;
+    let placeAvatar = null;
+
+    // ── 3D Text ───────────────────────────────────────────────────────────────
     const fontLoader = new FontLoader();
     fontLoader.load(
       'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/fonts/helvetiker_bold.typeface.json',
       (font) => {
-        const geo = new TextGeometry(name, {
+        // ── Headline ───────────────────────────────────────────────────────
+        const g1 = new TextGeometry(line1, {
           font,
-          size:           0.65,
-          depth:          0.20,
-          curveSegments:  10,
+          size:           0.70,
+          depth:          0.18,
+          curveSegments:  12,
           bevelEnabled:   true,
-          bevelThickness: 0.03,
-          bevelSize:      0.02,
-          bevelSegments:  4,
+          bevelThickness: 0.022,
+          bevelSize:      0.012,
+          bevelSegments:  5,
         });
+        g1.computeBoundingBox();
+        line1Width = g1.boundingBox.max.x - g1.boundingBox.min.x;
+        // Center headline on X
+        g1.translate(-line1Width / 2, 0, 0);
 
-        geo.computeBoundingBox();
-        const bb  = geo.boundingBox;
-        textWidth = bb.max.x - bb.min.x;
+        const m1 = new THREE.Mesh(g1, [matFront, matSide]);
+        m1.castShadow = m1.receiveShadow = true;
+        // Start below ground, GSAP rises it into place
+        m1.position.y = 1.48 - 4;
+        scene.add(m1);
+        _gsap.to(m1.position, { y: 1.48, duration: 1.6, delay: 0.3, ease: 'power3.out' });
 
-        // Center on X, text bottom sits at y=0.9 in world space
-        geo.translate(-textWidth / 2, 0.9, 0);
+        // ── Sub-mark "TB" — smaller, right-flush ───────────────────────────
+        if (line2) {
+          const g2 = new TextGeometry(line2, {
+            font,
+            size:           0.40,
+            depth:          0.09,
+            curveSegments:  10,
+            bevelEnabled:   true,
+            bevelThickness: 0.013,
+            bevelSize:      0.007,
+            bevelSegments:  4,
+          });
+          g2.computeBoundingBox();
+          const l2w = g2.boundingBox.max.x - g2.boundingBox.min.x;
+          // Right-align flush with headline's right edge
+          g2.translate(line1Width / 2 - l2w, 0, 0);
 
-        // Front faces: cyan
-        const frontMat = new THREE.MeshStandardMaterial({
-          color:             0x06b6d4,
-          metalness:         0.2,
-          roughness:         0.3,
-          emissive:          new THREE.Color(0x06b6d4),
-          emissiveIntensity: 0.22,
-        });
-        // Extruded sides: violet
-        const sideMat = new THREE.MeshStandardMaterial({
-          color:             0x8b5cf6,
-          metalness:         0.45,
-          roughness:         0.25,
-          emissive:          new THREE.Color(0x8b5cf6),
-          emissiveIntensity: 0.15,
-        });
+          const m2 = new THREE.Mesh(g2, [subFront, subSide]);
+          m2.castShadow = m2.receiveShadow = true;
+          m2.position.y = 0.82 - 4;
+          scene.add(m2);
+          _gsap.to(m2.position, { y: 0.82, duration: 1.6, delay: 0.52, ease: 'power3.out' });
+        }
 
-        const mesh = new THREE.Mesh(geo, [frontMat, sideMat]);
-        mesh.castShadow    = true;
-        mesh.receiveShadow = true;
-
-        // GSAP entrance: rise from below
-        mesh.position.y = -2.5;
-        scene.add(mesh);
-        _gsap.to(mesh.position, { y: 0, duration: 1.5, delay: 0.4, ease: 'power3.out' });
-
-        // If avatar loaded first, position it now
-        placeAvatarFn?.(textWidth);
+        placeAvatar?.(line1Width);
       },
       undefined,
       (err) => console.warn('Font load failed:', err),
     );
 
-    // ── Avatar GLB ────────────────────────────────────────────────────────────
-    let modelRef   = null;
-    let modelBaseY = 0;
-    let mixer      = null;
+    // ── Avatar ────────────────────────────────────────────────────────────────
+    let modelRef = null, modelBaseY = 0, mixer = null;
 
-    const gltfLoader = new GLTFLoader();
-    gltfLoader.load(
+    new GLTFLoader().load(
       '/models/avatar.glb',
       (gltf) => {
         const model = gltf.scene;
 
-        // Auto-fit: 2.2 units tall, feet at y=0
         const box    = new THREE.Box3().setFromObject(model);
         const size   = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
-        const s      = 2.2 / size.y;
+        const s      = 2.55 / size.y;   // slightly taller = more presence
+
         model.scale.setScalar(s);
         model.position.set(-center.x * s, -box.min.y * s, -center.z * s);
         modelBaseY = model.position.y;
 
-        // ── Face toward the camera (rotate 180° around Y) ─────────────────
+        // Rotate to face camera
         model.rotation.y = Math.PI;
 
-        // Shadows
-        model.traverse(child => {
-          if (child.isMesh) {
-            child.castShadow    = true;
-            child.receiveShadow = true;
-          }
+        model.traverse(c => {
+          if (c.isMesh) c.castShadow = c.receiveShadow = true;
         });
 
         scene.add(model);
         modelRef = model;
 
-        // Place avatar so the extended hand sits near the "V"
+        // Plant avatar at the left edge of "V", in front of the text plane
         const doPlace = (tw) => {
-          const vLeftEdge = -tw / 2;      // world X of V's left edge
-          model.position.x = vLeftEdge - 0.45; // avatar slightly left of V
-          model.position.z = 0.5;              // in front of text plane
+          model.position.x = -(tw / 2) - 0.28;
+          model.position.z = 0.55;
         };
+        placeAvatar = doPlace;
+        if (line1Width > 0) doPlace(line1Width);
 
-        placeAvatarFn = doPlace;
-        if (textWidth > 0) doPlace(textWidth); // text already loaded
-
-        // Animations (if Tripo embedded any)
         if (gltf.animations.length) {
           mixer = new THREE.AnimationMixer(model);
           mixer.clipAction(gltf.animations[0]).play();
@@ -198,15 +229,12 @@
     // ── Resize ────────────────────────────────────────────────────────────────
     const ro = new ResizeObserver(() => {
       if (!canvasEl) return;
-      const nw = canvasEl.offsetWidth;
-      const nh = canvasEl.offsetHeight;
+      const nw = canvasEl.offsetWidth, nh = canvasEl.offsetHeight;
       renderer.setSize(nw, nh);
       camera.aspect = nw / nh;
       camera.updateProjectionMatrix();
     });
     ro.observe(canvasEl.parentElement ?? canvasEl);
-
-    // ── Mouse ─────────────────────────────────────────────────────────────────
     window.addEventListener('mousemove', onMouseMove, { passive: true });
 
     // ── Render loop ───────────────────────────────────────────────────────────
@@ -218,15 +246,15 @@
 
       mixer?.update(dt);
 
-      // Gentle camera parallax
-      camera.position.x += (mx * 1.4 - camera.position.x) * 0.045;
-      camera.position.y += (1.8 - my * 0.5 - camera.position.y) * 0.045;
-      camera.lookAt(0, 1.2, 0);
+      // Restrained parallax — enough to feel 3D, not seasick
+      camera.position.x += (0.6 + mx * 0.65 - camera.position.x) * 0.038;
+      camera.position.y += (2.1 - my * 0.32 - camera.position.y) * 0.038;
+      camera.lookAt(0, 1.1, 0);
 
-      // Avatar idle: slow sway + micro bob
+      // Avatar: very subtle idle (professional, not cartoonish)
       if (modelRef) {
-        modelRef.rotation.y = Math.PI + Math.sin(t * 0.38) * 0.055;
-        modelRef.position.y = modelBaseY + Math.sin(t * 0.9) * 0.02;
+        modelRef.rotation.y = Math.PI + Math.sin(t * 0.36) * 0.045;
+        modelRef.position.y = modelBaseY + Math.sin(t * 0.78) * 0.016;
       }
 
       renderer.render(scene, camera);
@@ -247,8 +275,4 @@
   });
 </script>
 
-<canvas
-  bind:this={canvasEl}
-  class="w-full block"
-  style="height: clamp(380px, 58vh, 620px)"
-></canvas>
+<canvas bind:this={canvasEl} class="w-full block" style="height: clamp(460px, 64vh, 700px)"></canvas>
