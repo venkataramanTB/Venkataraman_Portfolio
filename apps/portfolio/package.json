@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "gsap": "^3.12.5",
-    "three": "^0.169.0",
+    "three": "^0.184.0",
     "@types/three": "^0.169.0",
     "@lucide/svelte": "^0.511.0"
   },
