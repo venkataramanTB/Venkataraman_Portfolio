@@ -128,6 +128,14 @@ async def embed_texts(texts: list[str]) -> list[list[float]] | None:
 def populate_db(db: Session, data: dict) -> CVImportResult:
     result = CVImportResult()
 
+    db.query(Skill).delete()
+    db.query(Experience).delete()
+    db.query(Education).delete()
+    db.query(Certificate).delete()
+    db.query(Achievement).delete()
+    db.query(Project).delete()
+    db.flush()
+
     p = data.get("profile") or {}
     if p.get("name"):
         existing = db.query(Profile).first()
