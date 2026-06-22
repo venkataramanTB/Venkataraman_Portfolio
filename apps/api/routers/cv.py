@@ -8,7 +8,7 @@ from database import get_db
 from auth import get_current_admin
 from models import (
     CVDocument, CVChunk,
-    Profile, Skill, Experience, Education, Certificate, Achievement, SocialLink,
+    Profile, Skill, Experience, Education, Certificate, Achievement, SocialLink, Project,
 )
 from schemas import CVStatus, CVImportResult, LinkedInSyncRequest
 from config import settings
@@ -72,12 +72,22 @@ Return exactly this JSON structure:
   ],
   "achievements": [
     {{"title": "...", "description": "...", "date": "2023", "icon": "🏆"}}
+  ],
+  "projects": [
+    {{
+      "title": "...", "description": "Short description of the project",
+      "technologies": ["Python", "React"], "category": "AI / ML",
+      "is_featured": true
+    }}
   ]
 }}
 
 Rules:
 - Skill proficiency: estimate 70-95 based on depth of usage described
 - Skill categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Languages", "Cloud", "Tools"
+- Project categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Open Source"
+- Extract projects from any section mentioning projects, portfolio work, or notable work
+- Mark the top 3 most impressive projects as is_featured: true
 """
 
     response = await model.generate_content_async(prompt)
@@ -186,6 +196,19 @@ def populate_db(db: Session, data: dict) -> CVImportResult:
                 display_order=result.achievements_created,
             ))
             result.achievements_created += 1
+    db.flush()
+
+    for proj in data.get("projects") or []:
+        if proj.get("title"):
+            db.add(Project(
+                title=proj["title"],
+                description=proj.get("description"),
+                technologies=proj.get("technologies") or [],
+                category=proj.get("category"),
+                is_featured=bool(proj.get("is_featured")),
+                display_order=result.projects_created,
+            ))
+            result.projects_created += 1
 
     db.commit()
     return result
@@ -254,7 +277,8 @@ async def upload_cv(
         f"Extracted {result.skills_created} skills, "
         f"{result.experiences_created} experiences, "
         f"{result.education_created} education records, "
-        f"{result.certificates_created} certificates"
+        f"{result.certificates_created} certificates, "
+        f"{result.projects_created} projects"
     )
     return result
 
