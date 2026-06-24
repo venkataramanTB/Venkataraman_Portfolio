@@ -224,7 +224,6 @@ class CVImportResult(BaseModel):
     projects_created: int = 0
     certificates_created: int = 0
     achievements_created: int = 0
-    projects_created: int = 0
     chunks_embedded: int = 0
     message: str = ""
 

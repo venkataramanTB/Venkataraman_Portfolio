@@ -15,7 +15,7 @@ const EMPTY = {
 export async function load() {
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4500);
+    const timer = setTimeout(() => controller.abort(), 2000);
     const res = await fetch(`${BASE}/portfolio`, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) return EMPTY;
