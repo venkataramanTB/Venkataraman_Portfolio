@@ -57,7 +57,8 @@
   <div class="card">
     <span class="label">Loading Portfolio</span>
 
-    <div class="mono text-gradient">VTB</div>
+    <img src="/logo.png" alt="Logo" class="logo"
+         onerror="this.style.display='none'" />
 
     <div class="bar-track" aria-hidden="true">
       <div class="bar-fill"></div>
@@ -148,12 +149,12 @@
     margin-bottom: 1.8rem;
   }
 
-  .mono {
-    font-size: clamp(3.5rem, 9vw, 6.5rem);
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    line-height: 1;
+  .logo {
+    width: clamp(80px, 18vw, 160px);
+    height: auto;
+    object-fit: contain;
     margin-bottom: 2.5rem;
+    filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.35));
   }
 
   /* ── scan-line progress bar ── */

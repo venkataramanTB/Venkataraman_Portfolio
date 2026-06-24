@@ -85,8 +85,10 @@
   <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
 
     <!-- Logo -->
-    <a bind:this={logoEl} href="/"
-       class="text-xs font-bold tracking-[0.28em] uppercase text-gradient inline-block">VTB</a>
+    <a bind:this={logoEl} href="/" class="inline-flex items-center">
+      <img src="/logo.png" alt="Logo" class="nav-logo"
+           onerror="this.style.display='none'" />
+    </a>
 
     <!-- Desktop nav -->
     <ul bind:this={linksEl} class="hidden md:flex items-center gap-10">
@@ -152,3 +154,12 @@
     </div>
   {/if}
 </nav>
+
+<style>
+  .nav-logo {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.3));
+  }
+</style>
