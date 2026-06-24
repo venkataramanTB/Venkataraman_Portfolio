@@ -16,7 +16,7 @@ jobs:
       contains(github.event.head_commit.modified, 'apps/portfolio') ||
       contains(github.event.head_commit.added, 'apps/portfolio')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -45,7 +45,7 @@ jobs:
       contains(github.event.head_commit.modified, 'apps/admin') ||
       contains(github.event.head_commit.added, 'apps/admin')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
