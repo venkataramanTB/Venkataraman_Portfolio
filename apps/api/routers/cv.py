@@ -8,7 +8,7 @@ from database import get_db
 from auth import get_current_admin
 from models import (
     CVDocument, CVChunk,
-    Profile, Skill, Experience, Education, Certificate, Achievement, SocialLink,
+    Profile, Skill, Experience, Education, Project, Certificate, Achievement, SocialLink,
 )
 from schemas import CVStatus, CVImportResult, LinkedInSyncRequest
 from config import settings
@@ -67,6 +67,15 @@ Return exactly this JSON structure:
       "start_date": "2019", "end_date": "2023", "gpa": null
     }}
   ],
+  "projects": [
+    {{
+      "title": "...", "description": "One-sentence summary",
+      "technologies": ["Python", "React"],
+      "category": "AI / ML",
+      "github_url": null, "demo_url": null, "appstore_url": null,
+      "is_featured": false
+    }}
+  ],
   "certificates": [
     {{"title": "...", "issuer": "...", "issued_date": "2023", "category": "AI / ML"}}
   ],
@@ -78,6 +87,9 @@ Return exactly this JSON structure:
 Rules:
 - Skill proficiency: estimate 70-95 based on depth of usage described
 - Skill categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Languages", "Cloud", "Tools"
+- Project categories: "AI / ML", "Full Stack", "iOS", "DevOps", "Open Source", "Research"
+- Set is_featured true for the 2-3 most impressive or complex projects
+- Extract every project mentioned anywhere in the CV (side projects, work projects, research, open source)
 """
 
     response = await model.generate_content_async(prompt)
@@ -153,6 +165,22 @@ def populate_db(db: Session, data: dict) -> CVImportResult:
                 display_order=result.experiences_created,
             ))
             result.experiences_created += 1
+    db.flush()
+
+    for proj in data.get("projects") or []:
+        if proj.get("title"):
+            db.add(Project(
+                title=proj["title"],
+                description=proj.get("description"),
+                technologies=proj.get("technologies") or [],
+                category=proj.get("category"),
+                github_url=proj.get("github_url"),
+                demo_url=proj.get("demo_url"),
+                appstore_url=proj.get("appstore_url"),
+                is_featured=bool(proj.get("is_featured")),
+                display_order=result.projects_created,
+            ))
+            result.projects_created += 1
     db.flush()
 
     for edu in data.get("education") or []:
@@ -253,6 +281,7 @@ async def upload_cv(
     result.message = (
         f"Extracted {result.skills_created} skills, "
         f"{result.experiences_created} experiences, "
+        f"{result.projects_created} projects, "
         f"{result.education_created} education records, "
         f"{result.certificates_created} certificates"
     )
