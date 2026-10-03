@@ -1,13 +1,8 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { useGSAP } from '$lib/gsap.js';
   import BandHead from './BandHead.svelte';
 
   export let experiences = [];
   export let education   = [];
-
-  let workEl, eduEl;
-  let ctx;
 
   function period(start, end, current) {
     const a = start || '';
@@ -16,28 +11,8 @@
     return a;
   }
 
-  onMount(async () => {
-    const g = await useGSAP();
-    if (!g) return;
-    const { gsap } = g;
-
-    ctx = gsap.context(() => {
-      [workEl, eduEl].filter(Boolean).forEach((container) => {
-        container.querySelectorAll('.entry').forEach((row, i) => {
-          gsap.from(row, {
-            opacity: 0,
-            y: 22,
-            duration: 0.6,
-            delay: (i % 4) * 0.06,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: row, start: 'top 90%' },
-          });
-        });
-      });
-    });
-  });
-
-  onDestroy(() => { ctx?.revert(); });
+  // Entries are deliberately static: the record reads as a document, and
+  // staggering every row in was the generic treatment.
 </script>
 
 <section id="work" class="band">
@@ -49,7 +24,7 @@
     />
 
     {#if experiences.length}
-      <div bind:this={workEl} class="log">
+      <div class="log">
         <!-- Column headers: this is a table, so label it like one -->
         <div class="log-head" aria-hidden="true">
           <span>Idx</span>
@@ -104,7 +79,7 @@
           <span class="t-micro sub-count">{education.length}</span>
         </div>
 
-        <div bind:this={eduEl} class="log">
+        <div class="log">
           {#each education as edu, i}
             <article class="entry">
               <span class="t-idx entry-idx">E-{String(i + 1).padStart(2, '0')}</span>

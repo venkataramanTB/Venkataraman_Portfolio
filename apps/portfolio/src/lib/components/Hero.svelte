@@ -107,9 +107,13 @@
 
     <!-- ── Macro identity ──────────────────────────────────────────────── -->
     <h1 class="name">
-      <span class="clip"><span bind:this={line1El} class="t-macro name-line">{line1}</span></span>
+      <span class="clip">
+        <span bind:this={line1El} class="t-macro name-line" style="--chars:{line1.length}">{line1}</span>
+      </span>
       {#if line2}
-        <span class="clip"><span bind:this={line2El} class="t-macro name-line name-line-2">{line2}</span></span>
+        <span class="clip">
+          <span bind:this={line2El} class="t-macro name-line name-line-2" style="--chars:{line2.length}">{line2}</span>
+        </span>
       {/if}
     </h1>
 
@@ -233,10 +237,15 @@
     container-type: inline-size;
   }
 
-  /* Cap the name against its own container width. 13cqw is the largest size
-     at which a 12-character Archivo Black string still fits on one line. */
+  /* Size the name from its own character count so it always fits the column.
+     0.76 is the measured average advance width of Archivo Black at weight 900
+     (measured 0.736 for caps, rounded up for safety margin and letter-spacing).
+     A fixed vw size cannot do this: a longer name simply overflows. */
   .name .name-line {
-    font-size: min(clamp(3.25rem, 11vw, 11rem), 13cqw);
+    font-size: min(
+      clamp(3.25rem, 11vw, 11rem),
+      calc(100cqw / (var(--chars, 12) * 0.76))
+    );
   }
   .name-line {
     display: block;
@@ -264,10 +273,13 @@
   .spec-table {
     border-top: 1px solid var(--rule-strong);
     margin-bottom: 2rem;
+    /* Keep the table to a readable measure: stretched to the full column the
+       discipline and instrumentation values drifted far apart. */
+    max-width: 46rem;
   }
   .spec {
     display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-columns: 3.5rem minmax(0, 13rem) minmax(0, 1fr);
     gap: 1rem;
     align-items: baseline;
     padding: 0.6875rem 0;

@@ -1,6 +1,4 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { useGSAP } from '$lib/gsap.js';
   import BandHead from './BandHead.svelte';
   import Icon from './Icon.svelte';
 
@@ -12,31 +10,6 @@
     ...projects.filter((p) => !p.is_featured),
   ];
 
-  let listEl;
-  let ctx;
-
-  onMount(async () => {
-    const g = await useGSAP();
-    if (!g) return;
-    const { gsap } = g;
-
-    ctx = gsap.context(() => {
-      if (!listEl) return;
-
-      listEl.querySelectorAll('.proj').forEach((row, i) => {
-        // Hard horizontal wipe — the row is printed onto the page
-        gsap.from(row, {
-          clipPath: 'inset(0 100% 0 0)',
-          duration: 0.75,
-          delay: (i % 5) * 0.05,
-          ease: 'expo.out',
-          scrollTrigger: { trigger: row, start: 'top 90%' },
-        });
-      });
-    });
-  });
-
-  onDestroy(() => { ctx?.revert(); });
 </script>
 
 <section id="projects" class="band">
@@ -48,7 +21,7 @@
     />
 
     {#if display.length}
-      <div bind:this={listEl} class="index">
+      <div class="index">
         <div class="index-head" aria-hidden="true">
           <span>Idx</span>
           <span>Designation</span>

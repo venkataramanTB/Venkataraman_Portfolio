@@ -67,16 +67,6 @@
         });
       }
 
-      if (asideEl) {
-        gsap.from(asideEl.querySelectorAll('.fact'), {
-          opacity: 0,
-          x: 20,
-          duration: 0.5,
-          stagger: 0.06,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: asideEl, start: 'top 86%' },
-        });
-      }
     });
   });
 
@@ -85,7 +75,7 @@
 
 <section id="about" class="band">
   <div class="shell">
-    <BandHead index="01" title="Abstract" meta="Sec. 01" />
+    <BandHead index="01" title="Abstract" />
 
     <div class="about-grid">
       <!-- Primary statement -->

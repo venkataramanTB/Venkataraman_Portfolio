@@ -1,6 +1,4 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { useGSAP } from '$lib/gsap.js';
   import BandHead from './BandHead.svelte';
   import Icon from './Icon.svelte';
 
@@ -13,42 +11,6 @@
     return acc;
   }, {});
 
-  let achEl, certEl;
-  let ctx;
-
-  onMount(async () => {
-    const g = await useGSAP();
-    if (!g) return;
-    const { gsap } = g;
-
-    ctx = gsap.context(() => {
-      if (achEl) {
-        gsap.from(achEl.querySelectorAll('.ach'), {
-          opacity: 0,
-          y: 20,
-          duration: 0.55,
-          stagger: 0.06,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: achEl, start: 'top 88%' },
-        });
-      }
-
-      if (certEl) {
-        certEl.querySelectorAll('.cert-group').forEach((group, i) => {
-          gsap.from(group.querySelectorAll('.cert'), {
-            opacity: 0,
-            x: -18,
-            duration: 0.45,
-            stagger: 0.035,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: group, start: 'top 90%' },
-          });
-        });
-      }
-    });
-  });
-
-  onDestroy(() => { ctx?.revert(); });
 </script>
 
 <section id="recognition" class="band">
@@ -66,7 +28,7 @@
         <span class="t-micro count">{achievements.length}</span>
       </div>
 
-      <div bind:this={achEl} class="achs grid-hairline">
+      <div class="achs grid-hairline">
         {#each achievements as ach, i}
           <article class="ach">
             <div class="ach-top">
@@ -93,7 +55,7 @@
           <span class="t-micro count">{certificates.length}</span>
         </div>
 
-        <div bind:this={certEl}>
+        <div>
           {#each Object.entries(byCategory) as [cat, certs]}
             <section class="cert-group">
               <h3 class="cert-cat">

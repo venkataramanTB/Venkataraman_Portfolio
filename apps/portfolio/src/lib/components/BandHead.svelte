@@ -27,14 +27,6 @@
         scrollTrigger: { trigger: wrapEl, start: 'top 90%' },
       });
 
-      gsap.from(wrapEl.querySelectorAll('.bh-item'), {
-        opacity: 0,
-        y: 14,
-        duration: 0.55,
-        stagger: 0.07,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: wrapEl, start: 'top 90%' },
-      });
     });
   });
 

@@ -39,7 +39,7 @@
   --grain-blend: multiply;                /* noise film              */
   --grain-alpha: 0.33;
   --plate-blend: multiply;                /* photographic print bed  */
-  --plate-filter: grayscale(1) contrast(1.22) brightness(1.04);
+  --plate-filter: grayscale(1) contrast(1.06) brightness(1.16);
   --mark-invert: 0;                       /* dark logo artwork        */
 
   /* Type */

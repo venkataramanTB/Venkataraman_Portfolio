@@ -1,5 +1,6 @@
 <script>
   import { theme, setTheme } from '$lib/theme.js';
+  import Icon from './Icon.svelte';
 
   /** 'bar' sits inline in the navbar; 'stack' is for the mobile sheet. */
   export let variant = 'bar';
@@ -7,9 +8,9 @@
   // Three explicit states instead of a sun/moon toggle: following the OS is a
   // real, distinct choice and a two-state switch cannot express it.
   const OPTIONS = [
-    { value: 'auto',  label: 'Auto',  hint: 'Follow system setting' },
-    { value: 'light', label: 'Light', hint: 'Paper substrate' },
-    { value: 'dark',  label: 'Dark',  hint: 'Terminal substrate' },
+    { value: 'auto',  label: 'Auto',  icon: 'theme-auto',  hint: 'Follow system setting' },
+    { value: 'light', label: 'Light', icon: 'theme-light', hint: 'Paper substrate' },
+    { value: 'dark',  label: 'Dark',  icon: 'theme-dark',  hint: 'Terminal substrate' },
   ];
 </script>
 
@@ -19,8 +20,6 @@
   role="radiogroup"
   aria-label="Colour substrate"
 >
-  <span class="switch-label t-micro" aria-hidden="true">Mode</span>
-
   <div class="switch-track">
     {#each OPTIONS as opt}
       <button
@@ -33,7 +32,9 @@
         class:is-on={$theme === opt.value}
         on:click={() => setTheme(opt.value)}
       >
-        {opt.label}
+        <Icon name={opt.icon} size={14} />
+        <!-- Label is kept only in the stacked (mobile) variant -->
+        <span class="seg-label">{opt.label}</span>
       </button>
     {/each}
   </div>
@@ -46,10 +47,6 @@
     gap: 0.5rem;
   }
 
-  .switch-label {
-    color: var(--ink-4);
-    font-size: 0.5625rem;
-  }
 
   .switch-track {
     display: inline-flex;
@@ -57,7 +54,10 @@
   }
 
   .seg {
-    padding: 0.3rem 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.45rem;
     background: transparent;
     border: 0;
     border-right: 1px solid var(--rule);
@@ -88,6 +88,10 @@
     justify-content: space-between;
     gap: 0.75rem;
   }
-  .is-stack .switch-label { font-size: 0.6875rem; }
-  .is-stack .seg { padding: 0.45rem 0.6rem; font-size: 0.625rem; }
+  .is-stack .seg { padding: 0.5rem 0.7rem; font-size: 0.625rem; }
+  /* Icon-only is fine in the dense nav bar; the mobile sheet shows both. */
+  .seg-label { display: none; }
+  .is-stack .seg-label { display: inline; }
+  .is-stack .switch-track { flex: 1; }
+  .is-stack .seg { flex: 1; justify-content: center; }
 </style>

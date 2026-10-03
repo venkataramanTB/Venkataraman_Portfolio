@@ -240,6 +240,11 @@
     padding-right: 1.25rem;
     border-right: 1px solid var(--rule);
   }
+  /* Below the tab breakpoint the links are hidden, so the brand's right-hand
+     rule would fence off an empty box. Drop it and let the bar breathe. */
+  @media (max-width: 999px) {
+    .ident { border-right: 0; padding-right: 0; }
+  }
   .ident-mark {
     height: 18px;
     width: auto;

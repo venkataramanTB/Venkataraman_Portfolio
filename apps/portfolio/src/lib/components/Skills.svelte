@@ -58,17 +58,9 @@
       }
 
       if (gridEl) {
-        gridEl.querySelectorAll('.cat').forEach((row, i) => {
-          gsap.from(row, {
-            opacity: 0,
-            y: 18,
-            duration: 0.55,
-            delay: i * 0.05,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: row, start: 'top 90%' },
-          });
-
-          // Proficiency bars fill to their real value
+        gridEl.querySelectorAll('.cat').forEach((row) => {
+          // Only the gauge fill animates — it carries the value. The category
+          // block itself stays put rather than fading in like everything else.
           gsap.from(row.querySelectorAll('.bar-fill'), {
             scaleX: 0,
             duration: 0.85,
@@ -159,6 +151,9 @@
   }
   @media (min-width: 820px) {
     .cats { grid-template-columns: repeat(2, 1fr); }
+    /* With an odd number of categories the final cell would leave the grid
+       background showing as a dead grey block — span it across instead. */
+    .cat:last-child:nth-child(odd) { grid-column: 1 / -1; }
   }
 
   .cat {
@@ -209,8 +204,9 @@
   .bar {
     display: block;
     height: 7px;
-    background-image: radial-gradient(var(--rule-strong) 0.5px, transparent 0.5px);
+    background-image: radial-gradient(var(--rule-strong) 0.6px, transparent 0.6px);
     background-size: 3px 3px;
+    background-color: var(--paper-sunk);
     position: relative;
   }
   .bar-fill {

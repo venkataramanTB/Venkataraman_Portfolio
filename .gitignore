@@ -17,3 +17,9 @@ Thumbs.db
 
 # Vendored third-party agent skills — reinstall with `npx skills add` using skills-lock.json
 .agents/
+/.playwright-mcp
+/audit
+
+# Local UI-audit artifacts
+audit/
+.playwright-mcp/

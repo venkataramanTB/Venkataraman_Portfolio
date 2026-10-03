@@ -90,7 +90,7 @@
 
 <section id="contact" class="band">
   <div class="shell">
-    <BandHead index="06" title="Transmit" meta="Sec. 06" />
+    <BandHead index="06" title="Transmit" />
 
     <h3 bind:this={headEl} class="t-display pitch">
       Hiring, building,<br />or just curious &mdash;<br />send the brief.
