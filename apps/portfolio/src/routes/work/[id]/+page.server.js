@@ -6,7 +6,7 @@ export async function load({ params, fetch }) {
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
+    const timer = setTimeout(() => controller.abort(), 9000);
     const res = await fetch(`${BASE}/portfolio`, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) throw error(503, 'Project data is unavailable right now.');
