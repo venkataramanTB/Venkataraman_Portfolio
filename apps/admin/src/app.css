@@ -2,35 +2,344 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   Admin console — same Swiss Industrial Print system as the public portfolio.
+   Data-dense by design: this is the one place where tight rows are correct.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --primary: #a78bfa;
-  --secondary: #38bdf8;
-  --accent: #fb923c;
-  --dark: #0a0a0f;
-  --surface: #11111b;
-  --border: #1e1e2e;
+  color-scheme: light;
+
+  /* Channel triplets so Tailwind alpha modifiers (bg-ink/5) keep working
+     while still following the active substrate. */
+  --paper-rgb:      244 244 240;
+  --paper-sunk-rgb: 234 232 227;
+  --paper-ink-rgb:  226 224 218;
+  --ink-rgb:        10 10 10;
+  --ink-2-rgb:      53 53 47;
+  --ink-3-rgb:      110 110 103;
+  --ink-4-rgb:      155 155 147;
+  --hazard-rgb:     230 25 25;
+
+  --paper:      rgb(var(--paper-rgb));
+  --paper-sunk: rgb(var(--paper-sunk-rgb));
+  --paper-ink:  rgb(var(--paper-ink-rgb));
+
+  --ink:   rgb(var(--ink-rgb));
+  --ink-2: rgb(var(--ink-2-rgb));
+  --ink-3: rgb(var(--ink-3-rgb));
+  --ink-4: rgb(var(--ink-4-rgb));
+
+  --rule:        rgb(var(--ink-rgb) / 0.16);
+  --rule-strong: rgb(var(--ink-rgb) / 0.42);
+
+  --hazard:     rgb(var(--hazard-rgb));
+  --hazard-ink: #b31313;
+
+  --grid-line: rgb(var(--ink-rgb) / 0.045);
+  --sheen:     rgb(var(--ink-rgb) / 0.05);
+  --scrim:     rgb(0 0 0 / 0.4);
+
+  --font-display: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --z-nav: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-mech: cubic-bezier(0.83, 0, 0.17, 1);
 }
 
-body { background: var(--dark); }
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(--dark); }
-::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
-::selection { background: var(--primary); color: #0a0a0f; }
+/* ─── Dark substrate: "Tactical Telemetry" ────────────────────────────────── */
 
-.glass {
-  background: rgba(17,17,27,0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.08);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --paper-rgb:      10 10 10;
+    --paper-sunk-rgb: 21 21 21;
+    --paper-ink-rgb:  30 30 30;
+    --ink-rgb:        234 234 234;
+    --ink-2-rgb:      180 180 174;
+    --ink-3-rgb:      134 134 127;
+    --ink-4-rgb:      93 93 87;
+    --hazard-rgb:     255 42 42;
+
+    --hazard-ink: #ff5c5c;
+    --scrim:      rgb(0 0 0 / 0.6);
+  }
 }
 
-.gradient-text {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-input, textarea, select {
+:root[data-theme='dark'] {
   color-scheme: dark;
+
+  --paper-rgb:      10 10 10;
+  --paper-sunk-rgb: 21 21 21;
+  --paper-ink-rgb:  30 30 30;
+  --ink-rgb:        234 234 234;
+  --ink-2-rgb:      180 180 174;
+  --ink-3-rgb:      134 134 127;
+  --ink-4-rgb:      93 93 87;
+  --hazard-rgb:     255 42 42;
+
+  --hazard-ink: #ff5c5c;
+  --scrim:      rgb(0 0 0 / 0.6);
 }
+
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--hazard); color: var(--paper); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--paper-sunk); }
+::-webkit-scrollbar-thumb { background: var(--ink); border: 3px solid var(--paper-sunk); }
+::-webkit-scrollbar-thumb:hover { background: var(--hazard); }
+
+:focus-visible {
+  outline: 2px solid var(--hazard);
+  outline-offset: 2px;
+}
+
+
+
+/* ─── Typography ───────────────────────────────────────────────────────────── */
+
+.t-micro {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.t-head {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* ─── Panels ───────────────────────────────────────────────────────────────── */
+
+/* `.glass` is kept as a class name so existing markup keeps working, but it is
+   no longer glass: it is a flat bordered compartment. No blur, no translucency. */
+.glass {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+/* ─── Controls ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 200ms var(--ease-out),
+    color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out),
+    transform 110ms var(--ease-out);
+}
+.btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.btn-hazard {
+  background: var(--hazard);
+  border-color: var(--hazard);
+  color: var(--paper);
+}
+.btn-hazard:hover { background: var(--ink); border-color: var(--ink); }
+
+.btn-ghost { border-color: var(--rule); color: var(--ink-3); }
+.btn-ghost:hover { background: var(--paper-sunk); color: var(--ink); border-color: var(--ink); }
+
+.field {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  transition: background-color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+}
+.field:hover { background: var(--paper-ink); }
+.field:focus {
+  outline: none;
+  background: var(--paper);
+  border-color: var(--ink);
+  box-shadow: inset 0 -2px 0 0 var(--hazard);
+}
+.field::placeholder { color: var(--ink-4); }
+.field:disabled { opacity: 0.5; }
+
+.field-bad { border-color: var(--hazard); }
+
+.label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 0.3rem;
+}
+
+/* ─── Tables ───────────────────────────────────────────────────────────────── */
+
+.tbl { width: 100%; border-collapse: collapse; }
+
+.tbl thead th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  background: var(--paper-sunk);
+  border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+
+.tbl tbody td {
+  padding: 0.5625rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.78125rem;
+  color: var(--ink-2);
+  vertical-align: top;
+}
+
+.tbl tbody tr { transition: background-color 180ms var(--ease-out); }
+.tbl tbody tr:hover { background: var(--paper-sunk); }
+
+/* ─── Tag ──────────────────────────────────────────────────────────────────── */
+
+.tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* ─── Texture ──────────────────────────────────────────────────────────────── */
+
+.hazard-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ink) 0 8px,
+    transparent 8px 16px
+  );
+}
+
+@keyframes blink {
+  0%, 49%  { opacity: 1; }
+  50%, 100%{ opacity: 0; }
+}
+.blink { animation: blink 1.1s step-end infinite; }
+
+@keyframes sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-sunk);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(10, 10, 10, 0.05), transparent);
+  animation: sweep 1.4s var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Oversized metric figure used on the overview tiles */
+.stat-figure {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 0.25rem;
+  transition: color 200ms var(--ease-out);
+}
+.group:hover .stat-figure { color: var(--hazard); }

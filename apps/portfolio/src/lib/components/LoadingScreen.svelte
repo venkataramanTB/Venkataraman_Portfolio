@@ -2,42 +2,61 @@
   import { onMount, onDestroy } from 'svelte';
   import { useGSAP } from '$lib/gsap.js';
 
-  let el;
+  let el, barEl;
   let ctx;
   let phase = 0;
-  let interval;
+  let elapsed = 0;
+  let interval, ticker;
 
+  // Honest about the cold start rather than cheerful about it.
   const PHASES = [
-    { msg: 'Initializing...',           detail: 'Setting up environment' },
-    { msg: 'Waking up server...',       detail: 'Render cold start — may take ~30s' },
-    { msg: 'Fetching portfolio data…',  detail: 'Connecting to database' },
-    { msg: 'Almost ready…',             detail: 'Preparing your experience' },
+    { code: 'P-01', msg: 'Initialising',   detail: 'Building render environment' },
+    { code: 'P-02', msg: 'Waking server', detail: 'Render cold start — up to 30s' },
+    { code: 'P-03', msg: 'Fetching data', detail: 'Querying Postgres' },
+    { code: 'P-04', msg: 'Composing',     detail: 'Laying out document' },
   ];
 
+  $: current = PHASES[phase];
+
   onMount(async () => {
+    ticker = setInterval(() => (elapsed += 1), 1000);
+    interval = setInterval(() => {
+      phase = Math.min(phase + 1, PHASES.length - 1);
+    }, 6000);
+
     const g = await useGSAP();
     if (!g) return;
     const { gsap } = g;
 
     ctx = gsap.context(() => {
-      gsap.from(el, { opacity: 0, duration: 0.5, ease: 'power2.out' });
+      gsap.from(el, { opacity: 0, duration: 0.3, ease: 'none' });
+      // Indeterminate sweep: we genuinely don't know how long the cold start takes,
+      // so this reads as activity, not as a fake percentage.
+      gsap.fromTo(
+        barEl,
+        { scaleX: 0.04, transformOrigin: 'left' },
+        {
+          scaleX: 1,
+          duration: 2.2,
+          ease: 'power1.inOut',
+          repeat: -1,
+          yoyo: true,
+          transformOrigin: 'left',
+        }
+      );
     });
-
-    interval = setInterval(() => {
-      phase = (phase + 1) % PHASES.length;
-    }, 5000);
   });
 
   export async function hide() {
     const g = await useGSAP();
     if (!g || !el) return;
     const { gsap } = g;
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
+      // Shutter up — matches the panel/plate wipes used elsewhere
       gsap.to(el, {
-        opacity: 0,
-        scale: 0.97,
-        duration: 0.55,
-        ease: 'power3.in',
+        clipPath: 'inset(0 0 100% 0)',
+        duration: 0.5,
+        ease: 'expo.inOut',
         onComplete: resolve,
       });
     });
@@ -46,172 +65,140 @@
   onDestroy(() => {
     ctx?.revert();
     clearInterval(interval);
+    clearInterval(ticker);
   });
 </script>
 
-<div bind:this={el} class="overlay" aria-live="polite" aria-label="Loading portfolio">
-  <div class="grid-bg" aria-hidden="true"></div>
-  <div class="top-glow"  aria-hidden="true"></div>
-  <div class="bot-glow"  aria-hidden="true"></div>
-
-  <div class="card">
-    <span class="label">Loading Portfolio</span>
-
-    <img src="/logo.png" alt="Logo" class="logo"
-         onerror="this.style.display='none'" />
-
-    <div class="bar-track" aria-hidden="true">
-      <div class="bar-fill"></div>
+<div bind:this={el} class="boot" role="status" aria-live="polite">
+  <div class="shell boot-inner">
+    <!-- Header -->
+    <div class="boot-head">
+      <span class="t-micro">&#91; Loading document &#93;</span>
+      <span class="t-micro clock">T+{String(elapsed).padStart(3, '0')}s</span>
     </div>
 
-    <div class="status">
-      <span class="dot" aria-hidden="true"></span>
-      <span>{PHASES[phase].msg}</span>
+    <hr class="band-rule-heavy" />
+
+    <!-- Macro status -->
+    <p class="boot-macro">{current.msg}<span class="blink caret">_</span></p>
+
+    <!-- Progress -->
+    <div class="track" aria-hidden="true">
+      <div bind:this={barEl} class="track-fill"></div>
     </div>
-    <p class="detail">{PHASES[phase].detail}</p>
+
+    <!-- Phase log -->
+    <ol class="phases">
+      {#each PHASES as p, i}
+        <li class="phase" class:is-done={i < phase} class:is-now={i === phase}>
+          <span class="t-idx">{p.code}</span>
+          <span class="phase-msg">{p.msg}</span>
+          <span class="phase-detail">{p.detail}</span>
+          <span class="phase-mark" aria-hidden="true">
+            {i < phase ? '×' : i === phase ? '›' : '·'}
+          </span>
+        </li>
+      {/each}
+    </ol>
+
+    <div class="hazard-stripes boot-stripe" aria-hidden="true"></div>
   </div>
 </div>
 
 <style>
-  .overlay {
+  .boot {
     position: fixed;
     inset: 0;
-    z-index: 9999;
-    background: var(--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* ── subtle grid ── */
-  .grid-bg {
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(6, 182, 212, 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(6, 182, 212, 0.04) 1px, transparent 1px);
-    background-size: 64px 64px;
-    pointer-events: none;
-  }
-
-  /* ── corner glows ── */
-  .top-glow {
-    position: absolute;
-    top: 0; left: 50%;
-    transform: translateX(-50%);
-    width: 700px; height: 420px;
-    background: radial-gradient(ellipse at top,
-      rgba(6, 182, 212, 0.10) 0%, transparent 68%);
-    pointer-events: none;
-  }
-  .bot-glow {
-    position: absolute;
-    bottom: 0; right: 0;
-    width: 500px; height: 300px;
-    background: radial-gradient(ellipse at bottom right,
-      rgba(139, 92, 246, 0.07) 0%, transparent 65%);
-    pointer-events: none;
-  }
-
-  /* ── card ── */
-  .card {
-    position: relative;
+    z-index: var(--z-modal);
+    background: var(--paper);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 3rem 4rem;
-    border: 1px solid var(--border);
-    background: rgba(17, 17, 17, 0.55);
-    backdrop-filter: blur(14px);
-    gap: 0;
+    justify-content: center;
+    will-change: clip-path;
   }
 
-  /* corner accents */
-  .card::before,
-  .card::after {
-    content: '';
-    position: absolute;
-    width: 20px; height: 20px;
-    border-color: var(--accent);
-    border-style: solid;
-    opacity: 0.6;
-  }
-  .card::before { top: -1px; left: -1px;  border-width: 1px 0 0 1px; }
-  .card::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+  .boot-inner { width: 100%; }
 
-  .label {
-    font-size: 0.6rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 500;
-    margin-bottom: 1.8rem;
-  }
-
-  .logo {
-    width: clamp(80px, 18vw, 160px);
-    height: auto;
-    object-fit: contain;
-    margin-bottom: 2.5rem;
-    filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.35));
-  }
-
-  /* ── scan-line progress bar ── */
-  .bar-track {
-    width: 220px;
-    height: 1px;
-    background: var(--border);
-    overflow: hidden;
-    margin-bottom: 2rem;
-    position: relative;
-  }
-  .bar-fill {
-    position: absolute;
-    top: 0; left: -65%;
-    width: 65%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    animation: scan 1.8s ease-in-out infinite;
-  }
-  @keyframes scan {
-    0%   { left: -65%; }
-    100% { left: 100%; }
-  }
-
-  /* ── status ── */
-  .status {
+  .boot-head {
     display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    color: var(--text);
-    font-weight: 500;
-    margin-bottom: 0.35rem;
-    min-height: 1.4em;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.625rem;
   }
+  .clock { color: var(--ink-4); font-variant-numeric: tabular-nums; }
 
-  .dot {
-    display: inline-block;
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-    animation: blink 1.3s ease-in-out infinite;
-  }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.25; }
-  }
-
-  .detail {
-    font-size: 0.6rem;
-    letter-spacing: 0.14em;
+  .boot-macro {
+    margin: clamp(1.5rem, 4vh, 2.5rem) 0 clamp(1.25rem, 3vh, 2rem);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(2rem, 7vw, 5rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
     text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 400;
+    color: var(--ink);
+  }
+  .caret { color: var(--hazard); }
+
+  .track {
+    height: 4px;
+    background: var(--paper-sunk);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+  }
+  .track-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--hazard);
+    will-change: transform;
+  }
+
+  .phases {
     margin: 0;
-    min-height: 1.2em;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--rule-strong);
+    max-width: 640px;
+  }
+
+  .phase {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 8rem) minmax(0, 1fr) 1.5rem;
+    gap: 0.875rem;
+    align-items: baseline;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--rule);
+    opacity: 0.4;
+    transition: opacity 300ms var(--ease-out);
+  }
+  .phase.is-done { opacity: 0.75; }
+  .phase.is-now  { opacity: 1; }
+
+  .phase-msg {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .phase-detail {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--ink-3);
+  }
+  .phase-mark { text-align: right; color: var(--ink-4); }
+  .phase.is-now .phase-mark { color: var(--hazard); }
+
+  @media (max-width: 600px) {
+    .phase { grid-template-columns: 3.25rem minmax(0, 1fr) 1.5rem; }
+    .phase-detail { display: none; }
+  }
+
+  .boot-stripe {
+    height: 10px;
+    opacity: 0.16;
+    margin-top: clamp(1.5rem, 4vh, 2.5rem);
   }
 </style>

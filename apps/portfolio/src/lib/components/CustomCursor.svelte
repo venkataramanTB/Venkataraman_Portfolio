@@ -1,67 +1,162 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { useGSAP } from '$lib/gsap.js';
+  import { onMount, onDestroy, tick } from 'svelte';
+  import { gsap } from 'gsap';
 
-  let dot, ring;
-  let ctx;
+  let reticle, xLabel, yLabel;
+  let enabled = false;
+  let raf;
+  let onMove, onDown, onUp, onOver;
 
   onMount(async () => {
-    const g = await useGSAP();
-    if (!g) return;
-    const { gsap } = g;
+    // Pointer reticle is meaningless on touch and wasteful under reduced motion.
+    const fine = window.matchMedia('(pointer: fine)').matches;
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!fine || calm) return;
 
-    // Set initial position off-screen so they don't flash at 0,0
-    gsap.set([dot, ring], { x: -200, y: -200 });
+    // Render the reticle first, then wait for the DOM to flush — `bind:this`
+    // is still undefined until Svelte has processed the {#if} block.
+    enabled = true;
+    await tick();
 
-    const onMove = (e) => {
-      gsap.to(dot,  { x: e.clientX, y: e.clientY, duration: 0.06, ease: 'none' });
-      gsap.to(ring, { x: e.clientX, y: e.clientY, duration: 0.28, ease: 'power2.out' });
+    // If the node somehow never mounted, bail out without hiding the real
+    // cursor. Losing the OS cursor with nothing to replace it is unusable.
+    if (!reticle) {
+      enabled = false;
+      return;
+    }
+
+    document.documentElement.classList.add('has-reticle');
+
+    const xTo = gsap.quickTo(reticle, 'x', { duration: 0.13, ease: 'power3.out' });
+    const yTo = gsap.quickTo(reticle, 'y', { duration: 0.13, ease: 'power3.out' });
+
+    let lx = 0, ly = 0, pending = false;
+
+    const paint = () => {
+      pending = false;
+      // Live coordinate readout — telemetry, consistent with the rest of the page
+      if (xLabel) xLabel.textContent = String(Math.round(lx)).padStart(4, '0');
+      if (yLabel) yLabel.textContent = String(Math.round(ly)).padStart(4, '0');
     };
 
-    const onEnter = () => {
-      gsap.to(ring, { scale: 2, borderColor: 'rgba(6,182,212,0.7)', duration: 0.25, ease: 'power2.out' });
-      gsap.to(dot,  { scale: 0, duration: 0.2 });
-    };
-    const onLeave = () => {
-      gsap.to(ring, { scale: 1, borderColor: 'rgba(6,182,212,0.35)', duration: 0.25 });
-      gsap.to(dot,  { scale: 1, duration: 0.2 });
-    };
-    const onClick = () => {
-      gsap.to(ring, { scale: 0.7, duration: 0.1, yoyo: true, repeat: 1 });
+    onMove = (e) => {
+      lx = e.clientX;
+      ly = e.clientY;
+      xTo(lx);
+      yTo(ly);
+      if (!pending) {
+        pending = true;
+        raf = requestAnimationFrame(paint);
+      }
     };
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('click', onClick);
+    onDown = () => gsap.to(reticle, { scale: 0.8, duration: 0.1, ease: 'power2.out' });
+    onUp   = () => gsap.to(reticle, { scale: 1,   duration: 0.2, ease: 'power2.out' });
 
-    const obs = new MutationObserver(() => {
-      document.querySelectorAll('a, button, [data-magnetic]').forEach(el => {
-        el.removeEventListener('mouseenter', onEnter);
-        el.removeEventListener('mouseleave', onLeave);
-        el.addEventListener('mouseenter', onEnter);
-        el.addEventListener('mouseleave', onLeave);
-      });
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('click', onClick);
-      obs.disconnect();
+    // Lock on when over anything interactive
+    onOver = (e) => {
+      const hit = e.target?.closest?.('a, button, input, textarea, select, [role="button"]');
+      reticle?.classList.toggle('is-lock', Boolean(hit));
     };
+
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerdown', onDown, { passive: true });
+    window.addEventListener('pointerup', onUp, { passive: true });
+    window.addEventListener('pointerover', onOver, { passive: true });
+
+    // Place it under the pointer immediately rather than parking it at 0,0
+    // until the first move event arrives.
+    const seed = (e) => {
+      gsap.set(reticle, { x: e.clientX, y: e.clientY });
+      lx = e.clientX;
+      ly = e.clientY;
+      paint();
+      window.removeEventListener('pointermove', seed);
+    };
+    window.addEventListener('pointermove', seed, { passive: true, once: true });
   });
 
-  onDestroy(() => { ctx?.revert(); });
+  onDestroy(() => {
+    if (typeof window === 'undefined') return;
+    cancelAnimationFrame(raf);
+    if (onMove) window.removeEventListener('pointermove', onMove);
+    if (onDown) window.removeEventListener('pointerdown', onDown);
+    if (onUp)   window.removeEventListener('pointerup', onUp);
+    if (onOver) window.removeEventListener('pointerover', onOver);
+    document.documentElement.classList.remove('has-reticle');
+  });
 </script>
 
-<div class="pointer-events-none fixed inset-0 z-[99999] hidden md:block">
-  <!-- Inner dot -->
-  <div bind:this={dot}
-       class="absolute -translate-x-1/2 -translate-y-1/2 rounded-full w-[6px] h-[6px]"
-       style="top:0;left:0;background:var(--accent);box-shadow:0 0 8px var(--accent)">
+{#if enabled}
+  <div bind:this={reticle} class="reticle" aria-hidden="true">
+    <span class="arm arm-l"></span>
+    <span class="arm arm-r"></span>
+    <span class="arm arm-t"></span>
+    <span class="arm arm-b"></span>
+    <span class="box"></span>
+    <span class="coords">
+      <span bind:this={xLabel}>0000</span>:<span bind:this={yLabel}>0000</span>
+    </span>
   </div>
-  <!-- Outer ring -->
-  <div bind:this={ring}
-       class="absolute -translate-x-1/2 -translate-y-1/2 rounded-full w-9 h-9 border"
-       style="top:0;left:0;border-color:rgba(6,182,212,0.35);box-shadow:0 0 14px rgba(6,182,212,0.08)">
-  </div>
-</div>
+{/if}
+
+<style>
+  /* Hide the OS cursor only while the reticle is actually live */
+  :global(html.has-reticle),
+  :global(html.has-reticle *) {
+    cursor: none !important;
+  }
+
+  .reticle {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    z-index: var(--z-grain);
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  /* Four separate segments leaving a 7px gap at centre, so the reticle never
+     obscures the thing it is pointing at. */
+  .arm {
+    position: absolute;
+    background: var(--ink);
+  }
+  .arm-l { top: -0.5px; left: -16px; width: 12px; height: 1px; }
+  .arm-r { top: -0.5px; left: 4px;   width: 12px; height: 1px; }
+  .arm-t { left: -0.5px; top: -16px; width: 1px; height: 12px; }
+  .arm-b { left: -0.5px; top: 4px;   width: 1px; height: 12px; }
+
+  .box {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--ink);
+    opacity: 0;
+    transition: opacity 160ms var(--ease-out);
+  }
+
+  .coords {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--ink-4);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+    transition: opacity 160ms var(--ease-out);
+  }
+
+  /* Locked on an interactive target */
+  .reticle:global(.is-lock) .arm { background: var(--hazard); }
+  .reticle:global(.is-lock) .box { opacity: 1; border-color: var(--hazard); }
+  .reticle:global(.is-lock) .coords { opacity: 1; color: var(--hazard); }
+</style>

@@ -4,32 +4,46 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary:  '#a78bfa',   // violet
-        secondary:'#38bdf8',   // sky
-        accent:   '#fb923c',   // orange
-        dark:     '#0a0a0f',
-        surface:  '#11111b',
-        border:   '#1e1e2e',
+        paper: {
+          DEFAULT: '#f4f4f0',
+          sunk: '#eae8e3',
+          ink: '#e2e0da',
+        },
+        ink: {
+          DEFAULT: '#0a0a0a',
+          2: '#35352f',
+          3: '#6e6e67',
+          4: '#9b9b93',
+        },
+        hazard: {
+          DEFAULT: '#e61919',
+          ink: '#b31313',
+        },
+        rule: 'rgba(10,10,10,0.16)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-        display: ['Clash Display', 'Inter', 'sans-serif'],
+        display: ['Archivo', 'Helvetica Neue', 'Helvetica', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans: ['Archivo', 'Helvetica Neue', 'Helvetica', 'sans-serif'],
       },
-      animation: {
-        'gradient-x': 'gradient-x 8s ease infinite',
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4,0,0.6,1) infinite',
+      borderRadius: {
+        none: '0',
+        DEFAULT: '0',
       },
-      keyframes: {
-        'gradient-x': {
-          '0%,100%': { backgroundPosition: '0% 50%' },
-          '50%':     { backgroundPosition: '100% 50%' },
-        },
-        float: {
-          '0%,100%': { transform: 'translateY(0px)' },
-          '50%':     { transform: 'translateY(-20px)' },
-        },
+      maxWidth: {
+        shell: '1440px',
+      },
+      zIndex: {
+        base: '0',
+        raised: '10',
+        nav: '20',
+        overlay: '30',
+        modal: '40',
+        grain: '50',
+      },
+      transitionTimingFunction: {
+        out: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        mech: 'cubic-bezier(0.83, 0, 0.17, 1)',
       },
     },
   },

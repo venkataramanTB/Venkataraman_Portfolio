@@ -1,173 +1,402 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { useGSAP } from '$lib/gsap.js';
+  import Icon from './Icon.svelte';
 
   export let profile     = null;
   export let socialLinks = [];
 
-  let line1El, line2El, rolesEl, bioEl, linksEl, photoWrapEl, imgEl, scrollEl;
-  let photoVisible = true;
-  let ctx;
+  const DISCIPLINES = [
+    { code: 'D-01', name: 'AI Engineering',    note: 'LLM agents · RAG · evals' },
+    { code: 'D-02', name: 'Full Stack',        note: 'SvelteKit · FastAPI · Postgres' },
+    { code: 'D-03', name: 'iOS Development',   note: 'Swift · SwiftUI · UIKit' },
+    { code: 'D-04', name: 'Machine Learning',  note: 'PyTorch · pipelines · serving' },
+  ];
 
-  $: nameParts = (profile?.name ?? 'Venkataraman TB').toUpperCase().split(' ');
-  $: line1     = nameParts[0];
-  $: line2     = nameParts.slice(1).join(' ');
+  $: fullName = profile?.name ?? 'Venkataraman TB';
+  $: nameParts = fullName.trim().split(/\s+/);
+  $: line1 = nameParts.slice(0, Math.max(1, nameParts.length - 1)).join(' ');
+  $: line2 = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+
+
+  const SOCIAL_ICON = {
+    github: 'github', linkedin: 'linkedin', email: 'mail', mail: 'mail',
+    twitter: 'link', x: 'link',
+  };
+  const socialIcon = (p) => SOCIAL_ICON[p?.toLowerCase()] ?? 'link';
+
+  let line1El, line2El, metaEl, specEl, bioEl, linksEl, plateEl, cueEl;
+  let ctx;
 
   onMount(async () => {
     const g = await useGSAP();
     if (!g) return;
     const { gsap } = g;
 
-    if (imgEl) imgEl.onerror = () => { photoVisible = false; };
-
     ctx = gsap.context(() => {
       const tl = gsap.timeline({ delay: 0.1 });
 
-      // Photo: curtain wipe upward
-      if (photoWrapEl) {
-        tl.fromTo(photoWrapEl,
-          { clipPath: 'inset(100% 0 0 0)' },
-          { clipPath: 'inset(0% 0 0 0)', duration: 1.15, ease: 'power4.inOut' },
-          0
+      // Meta strip types in first — the machine booting
+      tl.from(metaEl?.children ?? [], {
+        opacity: 0,
+        duration: 0.3,
+        stagger: 0.05,
+        ease: 'none',
+      });
+
+      // Name: hard mechanical slide from behind the clip edge. No fade, no blur.
+      tl.from(
+        [line1El, line2El].filter(Boolean),
+        {
+          yPercent: 108,
+          duration: 0.9,
+          stagger: 0.08,
+          ease: 'expo.out',
+        },
+        '-=0.1'
+      );
+
+      // Spec rows deal out like punch cards
+      if (specEl) {
+        tl.from(
+          specEl.querySelectorAll('.spec'),
+          { opacity: 0, x: -24, duration: 0.45, stagger: 0.06, ease: 'power3.out' },
+          '-=0.45'
         );
       }
 
-      // Name lines slide up from clip
-      tl.from([line1El, line2El].filter(Boolean), {
-        yPercent: 108,
-        opacity:  0,
-        duration: 0.9,
-        stagger:  0.12,
+      tl.from([bioEl, linksEl].filter(Boolean), {
+        opacity: 0,
+        y: 16,
+        duration: 0.55,
+        stagger: 0.08,
         ease: 'power3.out',
-      }, 0.15);
+      }, '-=0.3');
 
-      // Roles, bio, links cascade in
-      tl.from(rolesEl, { opacity: 0, y: 14, duration: 0.5 }, '-=0.35')
-        .from(bioEl,   { opacity: 0, y: 12, duration: 0.5 }, '-=0.3')
-        .from(linksEl?.children ?? [],
-          { opacity: 0, y: 10, stagger: 0.05, duration: 0.4 }, '-=0.25')
-        .from(scrollEl, { opacity: 0, duration: 0.35 }, '-=0.1');
+      // Photo plate: clipped wipe downward, like a plate being printed
+      if (plateEl) {
+        tl.from(plateEl, {
+          clipPath: 'inset(0 0 100% 0)',
+          duration: 1.05,
+          ease: 'expo.inOut',
+        }, 0.25);
+      }
+
+      tl.from(cueEl, { opacity: 0, duration: 0.5 }, '-=0.2');
     });
   });
 
   onDestroy(() => { ctx?.revert(); });
 </script>
 
-<section id="home" class="relative px-6 max-w-6xl mx-auto" style="min-height:100svh">
+<section id="index" class="hero">
+  <div class="shell">
+    <!-- ── Telemetry strip ──────────────────────────────────────────────── -->
+    <div bind:this={metaEl} class="meta">
+      <span class="t-micro">Unit / {profile?.location ?? 'Chennai, IN'}</span>
+      <span class="meta-sep" aria-hidden="true">///</span>
+      <span class="t-micro">Doc / Portfolio</span>
+      <span class="meta-sep" aria-hidden="true">///</span>
+      <span class="t-micro status">
+        <span class="dot" class:dot-live={profile?.open_to_work !== false} aria-hidden="true"></span>
+        {profile?.open_to_work !== false ? 'Available for hire' : 'Not available'}
+      </span>
+    </div>
 
-  <!-- Grid -->
-  <div class="grid {photoVisible ? 'lg:grid-cols-[1fr_min(36%,390px)]' : ''} gap-x-14 items-start pt-28 pb-28">
+    <hr class="band-rule-heavy" />
 
-    <!-- Left: name + content -->
-    <div class="flex flex-col">
+    <!-- ── Macro identity ──────────────────────────────────────────────── -->
+    <h1 class="name">
+      <span class="clip"><span bind:this={line1El} class="t-macro name-line">{line1}</span></span>
+      {#if line2}
+        <span class="clip"><span bind:this={line2El} class="t-macro name-line name-line-2">{line2}</span></span>
+      {/if}
+    </h1>
 
-      <!-- Name lines (each wrapped for slide-up clip) -->
-      <div class="mb-8 select-none">
-        <div class="name-clip">
-          <div bind:this={line1El} class="hero-name">{line1}</div>
-        </div>
-        {#if line2}
-          <div class="name-clip">
-            <div bind:this={line2El} class="hero-name hero-sub text-right">{line2}</div>
+    <div class="hero-grid">
+      <!-- Left: discipline spec table -->
+      <div class="col-main">
+        <div bind:this={specEl} class="spec-table">
+          <div class="spec spec-head">
+            <span>Idx</span>
+            <span>Discipline</span>
+            <span class="spec-note-col">Instrumentation</span>
           </div>
-        {/if}
-      </div>
+          {#each DISCIPLINES as d}
+            <div class="spec">
+              <span class="t-idx">{d.code}</span>
+              <span class="spec-name">{d.name}</span>
+              <span class="spec-note">{d.note}</span>
+            </div>
+          {/each}
+        </div>
 
-      <!-- Role tags -->
-      <div bind:this={rolesEl}
-           class="flex flex-wrap items-center gap-x-5 gap-y-2 pb-8 mb-8 border-b border-[var(--border)]">
-        {#each ['AI Engineer','Full Stack Developer','iOS Dev','ML Engineer'] as role, i}
-          {#if i > 0}<span style="color:var(--border)" aria-hidden="true">—</span>{/if}
-          <span class="sec-num">{role}</span>
-        {/each}
-      </div>
+        <p bind:this={bioEl} class="t-lead bio">
+          {profile?.bio ??
+            'I build intelligent systems end to end — LLM-powered agents, ML pipelines, native iOS apps, and the high-throughput backends underneath them.'}
+        </p>
 
-      <!-- Bio -->
-      <p bind:this={bioEl}
-         class="text-[0.92rem] leading-relaxed max-w-[46ch] mb-10"
-         style="color:var(--muted)">
-        {profile?.bio ?? 'I architect intelligent systems — LLM-powered agents, ML pipelines, pixel-perfect iOS apps, and high-throughput web backends.'}
-      </p>
-
-      <!-- Links -->
-      <div bind:this={linksEl} class="flex flex-wrap items-center gap-x-8 gap-y-3">
-        {#if profile?.location}
-          <span class="sec-num">📍 {profile.location}</span>
-        {/if}
-        {#each socialLinks as link}
-          <a href={link.url} target="_blank" rel="noopener noreferrer"
-             class="sec-num hover:text-[var(--accent)] transition-colors duration-200">
-            {link.platform}
+        <div bind:this={linksEl} class="links">
+          <a href="#projects" class="btn" data-press aria-label="View work" title="View work">
+            <Icon name="projects" size={15} />
+            <Icon name="arrow-right" size={14} />
           </a>
-        {/each}
-        {#if profile?.email && !socialLinks.find(l => l.platform?.toLowerCase() === 'email')}
-          <a href="mailto:{profile.email}"
-             class="sec-num hover:text-[var(--accent)] transition-colors duration-200">Email</a>
-        {/if}
-        <a href="#projects"
-           class="ml-auto group sec-num hover:text-[var(--text)] transition-colors duration-200">
-          View work
-          <span class="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
-        </a>
+          {#if profile?.resume_url}
+            <a href={profile.resume_url} target="_blank" rel="noopener noreferrer"
+               class="btn" data-press aria-label="Download resume" title="Download resume">
+              <Icon name="document" size={15} />
+              <Icon name="download" size={14} />
+            </a>
+          {/if}
+          <div class="link-list">
+            {#each socialLinks as link}
+              <a href={link.url} target="_blank" rel="noopener noreferrer"
+                 class="iconlink" aria-label={link.platform} title={link.platform}>
+                <Icon name={socialIcon(link.platform)} size={17} />
+              </a>
+            {/each}
+            {#if profile?.email && !socialLinks.find((l) => l.platform?.toLowerCase() === 'email')}
+              <a href="mailto:{profile.email}" class="iconlink" aria-label="Email" title="Email">
+                <Icon name="mail" size={17} />
+              </a>
+            {/if}
+          </div>
+        </div>
       </div>
+
+      <!-- Right: print plate -->
+      <aside class="col-plate">
+        <figure bind:this={plateEl} class="plate-frame">
+          <div class="halftone plate-bed">
+            <img
+              src="/profile_picture.png"
+              alt="{fullName}, photographed in black and white"
+              class="plate"
+              loading="eager"
+            />
+          </div>
+          <figcaption class="plate-cap">
+            <span class="t-micro">Fig. 01</span>
+            <span class="t-micro">{fullName}</span>
+          </figcaption>
+        </figure>
+
+        <div class="barcode plate-barcode" aria-hidden="true"></div>
+      </aside>
     </div>
-
-    <!-- Right: profile photo — black & white only in hero -->
-    {#if photoVisible}
-      <div bind:this={photoWrapEl} class="hero-photo sticky top-24 overflow-hidden">
-        <img
-          bind:this={imgEl}
-          src="/profile_picture.png"
-          alt={profile?.name ?? 'Venkataraman TB'}
-          class="w-full h-full object-cover object-top block photo-bw"
-        />
-        <div class="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
-             style="background:linear-gradient(to bottom,transparent,var(--bg) 96%)"></div>
-        <div class="grain-overlay absolute inset-0 pointer-events-none"></div>
-      </div>
-    {/if}
-
   </div>
 
-  <!-- Scroll cue -->
-  <div bind:this={scrollEl}
-       class="absolute bottom-10 left-6 flex flex-col items-start gap-2">
-    <span class="sec-num" style="font-size:0.6rem;color:var(--border)">SCROLL</span>
-    <div class="w-px h-12 overflow-hidden" style="background:var(--border)">
-      <div class="w-full h-full scroll-cue" style="background:var(--muted)"></div>
-    </div>
+  <!-- ── Scroll cue ───────────────────────────────────────────────────── -->
+  <div bind:this={cueEl} class="cue" aria-hidden="true">
+    <Icon name="scroll" size={14} />
+    <span class="cue-track"><span class="cue-dash scroll-cue"></span></span>
   </div>
-
 </section>
 
 <style>
-  .name-clip { overflow: hidden; line-height: 0.92; }
-
-  .hero-name {
-    font-size: clamp(3rem, 6.8vw, 6.2rem);
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    line-height: 0.9;
-    color: var(--text);
-  }
-  .hero-sub {
-    font-size: clamp(1.8rem, 4.2vw, 3.8rem);
-    color: var(--muted);
+  .hero {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: clamp(2rem, 6vh, 4rem);
+    padding-bottom: clamp(4rem, 10vh, 6rem);
+    position: relative;
   }
 
-  .hero-photo {
+  /* ─── Telemetry strip ──────────────────────────────────────────────────── */
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+  }
+  .meta-sep {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: var(--ink-4);
+  }
+  .status { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--ink-4);
+  }
+  .dot-live { background: var(--hazard); }
+
+  /* ─── Macro identity ───────────────────────────────────────────────────── */
+  .name {
+    margin: clamp(1rem, 3vh, 2rem) 0 clamp(1.5rem, 4vh, 2.75rem);
+    /* Lets the macro type size itself against this box rather than the
+       viewport, so a long name scales down instead of overflowing. */
+    container-type: inline-size;
+  }
+
+  /* Cap the name against its own container width. 13cqw is the largest size
+     at which a 12-character Archivo Black string still fits on one line. */
+  .name .name-line {
+    font-size: min(clamp(3.25rem, 11vw, 11rem), 13cqw);
+  }
+  .name-line {
+    display: block;
+    will-change: transform;
+  }
+  /* Second line is outlined, not filled — textural contrast against the slab */
+  .name-line-2 {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--ink);
+    text-stroke: 1.5px var(--ink);
+  }
+
+  /* ─── Grid ─────────────────────────────────────────────────────────────── */
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(2rem, 5vw, 3.5rem);
+    align-items: start;
+  }
+  @media (min-width: 960px) {
+    .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(240px, 27%); }
+  }
+
+  /* ─── Spec table ───────────────────────────────────────────────────────── */
+  .spec-table {
+    border-top: 1px solid var(--rule-strong);
+    margin-bottom: 2rem;
+  }
+  .spec {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.6875rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .spec-head > span {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+  }
+  .spec-head { padding: 0.375rem 0; }
+
+  .spec-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .spec-note {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+  }
+  @media (max-width: 560px) {
+    .spec { grid-template-columns: 3rem minmax(0, 1fr); }
+    .spec-note-col { display: none; }
+    .spec-note { grid-column: 2; }
+  }
+
+  .bio { margin: 0 0 2rem; }
+
+  /* ─── Links ────────────────────────────────────────────────────────────── */
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+  .link-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-left: auto;
+  }
+  .link-list a { text-decoration: none; }
+
+  /* Square icon cell — same affordance as the nav */
+  .iconlink {
+    display: inline-flex;
+    padding: 0.4rem;
+    border: 1px solid var(--rule);
+    color: var(--ink-3);
+    text-decoration: none;
+    transition: color 180ms var(--ease-out), background-color 180ms var(--ease-out),
+      border-color 180ms var(--ease-out);
+  }
+  .iconlink:hover {
+    color: var(--paper);
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  @media (max-width: 640px) {
+    .link-list { margin-left: 0; width: 100%; }
+  }
+
+  /* ─── Print plate ──────────────────────────────────────────────────────── */
+  .plate-frame {
+    margin: 0;
+    border: 1px solid var(--rule-strong);
+    padding: 7px;
+    background: var(--paper);
+    will-change: clip-path;
+  }
+  .plate-bed {
     aspect-ratio: 3 / 4;
-    max-height: 80vh;
+    overflow: hidden;
+    background: var(--paper-sunk);
+  }
+  .plate-bed img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+  }
+  .plate-cap {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 7px;
+    margin-top: 7px;
+    border-top: 1px solid var(--rule);
+  }
+  .plate-barcode {
+    height: 22px;
+    margin-top: 0.75rem;
+    opacity: 0.5;
+  }
+  @media (max-width: 960px) {
+    .col-plate { max-width: 300px; }
   }
 
-  /* Permanently black & white in the hero */
-  .photo-bw {
-    filter: grayscale(1) contrast(1.08) brightness(0.88) saturate(0);
+  /* ─── Scroll cue ───────────────────────────────────────────────────────── */
+  .cue {
+    position: absolute;
+    bottom: clamp(1.25rem, 4vh, 2.25rem);
+    left: var(--gutter);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
-
-  .grain-overlay {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23g)' opacity='1'/%3E%3C/svg%3E");
-    opacity: 0.055;
-    mix-blend-mode: overlay;
+  .cue-track {
+    display: block;
+    width: 1px;
+    height: 36px;
+    background: var(--rule);
+    overflow: hidden;
+  }
+  .cue-dash {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--hazard);
   }
 </style>

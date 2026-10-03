@@ -10,6 +10,7 @@
   import { api } from '$lib/api.js';
   import { toast } from '$lib/stores/toast.js';
   import { createEventDispatcher } from 'svelte';
+  import Icon from './Icon.svelte';
 
   export let resource = '';
   export let fields = [];
@@ -23,26 +24,67 @@
   let form = {};
   let saving = false;
   let deleteConfirm = null;
+  let errors = {};
+
+  $: cols = fields.filter((f) => f.table !== false);
 
   function openCreate() {
     editing = null;
-    form = Object.fromEntries(fields.map(f => [f.key, f.default ?? '']));
+    errors = {};
+    form = Object.fromEntries(fields.map((f) => [f.key, f.default ?? '']));
     showForm = true;
   }
 
   function openEdit(item) {
     editing = item;
+    errors = {};
     form = { ...item };
     showForm = true;
   }
 
+  function closeForm() {
+    showForm = false;
+    deleteConfirm = null;
+  }
+
+  // Client-side validation so required fields fail here, not at the API.
+  function validate() {
+    const next = {};
+    for (const field of fields) {
+      const v = form[field.key];
+      if (field.required && (v === '' || v === null || v === undefined)) {
+        next[field.key] = `${field.label} is required.`;
+        continue;
+      }
+      if (field.type === 'url' && v) {
+        try { new URL(v); } catch { next[field.key] = 'Enter a full URL including https://'; }
+      }
+      if (field.type === 'number' && v !== '' && v !== null && v !== undefined) {
+        const n = Number(v);
+        if (Number.isNaN(n)) next[field.key] = 'Enter a number.';
+        else if (field.min !== undefined && n < field.min) next[field.key] = `Minimum is ${field.min}.`;
+        else if (field.max !== undefined && n > field.max) next[field.key] = `Maximum is ${field.max}.`;
+      }
+    }
+    errors = next;
+    return Object.keys(next).length === 0;
+  }
+
+  function touch(key) {
+    if (errors[key]) {
+      const { [key]: _, ...rest } = errors;
+      errors = rest;
+    }
+  }
+
   async function save() {
+    if (!validate()) return;
     saving = true;
     try {
       const payload = buildPayload(form);
       if (editing) {
         const updated = await api.update(resource, editing.id, payload);
-        items = items.map(i => i.id === editing.id ? updated : i);
+        items = items.map((i) => (i.id === editing.id ? updated : i));
         toast(`${title} updated`);
       } else {
         const created = await api.create(resource, payload);
@@ -61,9 +103,9 @@
   async function remove(item) {
     try {
       await api.remove(resource, item.id);
-      items = items.filter(i => i.id !== item.id);
+      items = items.filter((i) => i.id !== item.id);
       deleteConfirm = null;
-      toast(`Deleted`);
+      toast(`${title} deleted`);
       dispatch('change');
     } catch (e) {
       toast(e.message, 'error');
@@ -76,7 +118,11 @@
       let v = f[field.key];
       if (field.type === 'number') v = Number(v);
       if (field.type === 'boolean') v = Boolean(v);
-      if (field.type === 'tags') v = typeof v === 'string' ? v.split(',').map(s => s.trim()).filter(Boolean) : (v ?? []);
+      if (field.type === 'tags') {
+        v = typeof v === 'string'
+          ? v.split(',').map((s) => s.trim()).filter(Boolean)
+          : (v ?? []);
+      }
       p[field.key] = v;
     }
     return p;
@@ -84,60 +130,95 @@
 
   function displayValue(item, field) {
     const v = item[field.key];
-    if (field.type === 'boolean') return v ? '✓' : '✗';
+    if (field.type === 'boolean') return v ? 'Yes' : 'No';
     if (field.type === 'tags') return Array.isArray(v) ? v.join(', ') : (v ?? '');
     return v ?? '—';
   }
+
+  function onKey(e) {
+    if (e.key === 'Escape' && showForm) closeForm();
+  }
 </script>
 
-<div class="space-y-6">
+<svelte:window on:keydown={onKey} />
+
+<section class="wrap">
   <!-- Header -->
-  <div class="flex items-center justify-between">
-    <h2 class="text-2xl font-bold text-white">{title}</h2>
-    <button
-      on:click={openCreate}
-      class="px-5 py-2.5 rounded-xl bg-primary text-dark text-sm font-semibold hover:bg-white transition-all duration-200"
-    >+ Add New</button>
+  <div class="head">
+    <div class="head-text">
+      <h2 class="t-display head-title">{title}</h2>
+      <span class="t-micro head-count">
+        {items.length} {items.length === 1 ? 'record' : 'records'}
+      </span>
+    </div>
+    <button on:click={openCreate} class="btn btn-hazard"
+            aria-label="Add record" title="Add record">
+      <Icon name="plus" size={15} />
+    </button>
   </div>
+
+  <div class="hazard-stripes head-stripe" aria-hidden="true"></div>
 
   <!-- Table -->
   {#if items.length === 0}
-    <div class="glass rounded-2xl border border-border p-12 text-center text-slate-500">
-      No {title.toLowerCase()} yet. Click "Add New" to get started.
+    <!-- Composed empty state rather than one grey sentence -->
+    <div class="empty">
+      <span class="t-micro">&#91; No records &#93;</span>
+      <p class="empty-copy">
+        Nothing is filed under {title.toLowerCase()} yet. Add the first record and it
+        appears on the portfolio immediately.
+      </p>
+      <button on:click={openCreate} class="btn btn-hazard"
+              aria-label="Add the first record" title="Add the first record">
+        <Icon name="plus" size={15} />
+      </button>
+      <div class="empty-skel">
+        {#each Array(3) as _}
+          <div class="skel skel-row"></div>
+        {/each}
+      </div>
     </div>
   {:else}
-    <div class="overflow-x-auto rounded-2xl border border-border">
-      <table class="w-full text-sm">
+    <div class="tbl-wrap">
+      <table class="tbl">
         <thead>
-          <tr class="border-b border-border">
-            {#each fields.filter(f => f.table !== false) as field}
-              <th class="px-4 py-3 text-left text-xs text-slate-500 uppercase tracking-wider font-medium">{field.label}</th>
+          <tr>
+            <th class="col-idx">#</th>
+            {#each cols as field}
+              <th>{field.label}</th>
             {/each}
-            <th class="px-4 py-3 text-right text-xs text-slate-500 uppercase tracking-wider font-medium">Actions</th>
+            <th class="col-act">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {#each items as item (item.id)}
-            <tr class="border-b border-border/50 hover:bg-white/2 transition-colors">
-              {#each fields.filter(f => f.table !== false) as field}
-                <td class="px-4 py-3 text-slate-300 max-w-[200px] truncate">
+          {#each items as item, i (item.id)}
+            <tr>
+              <td class="col-idx cell-idx">{String(i + 1).padStart(2, '0')}</td>
+              {#each cols as field}
+                <td class="cell" title={String(displayValue(item, field))}>
                   {displayValue(item, field)}
                 </td>
               {/each}
-              <td class="px-4 py-3">
-                <div class="flex items-center justify-end gap-2">
-                  <button
-                    on:click={() => openEdit(item)}
-                    class="px-3 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary hover:text-dark transition-all duration-200"
-                  >Edit</button>
+              <td class="col-act">
+                <div class="acts">
+                  <button on:click={() => openEdit(item)} class="mini"
+                          aria-label="Edit record" title="Edit">
+                    <Icon name="edit" size={14} />
+                  </button>
                   {#if deleteConfirm === item.id}
-                    <button on:click={() => remove(item)} class="px-3 py-1 rounded-lg text-xs font-medium bg-red-500 text-white">Confirm</button>
-                    <button on:click={() => deleteConfirm = null} class="px-3 py-1 rounded-lg text-xs font-medium bg-white/5 text-slate-400">Cancel</button>
+                    <button on:click={() => remove(item)} class="mini mini-danger"
+                            aria-label="Confirm delete" title="Confirm delete">
+                      <Icon name="check" size={14} />
+                    </button>
+                    <button on:click={() => (deleteConfirm = null)} class="mini"
+                            aria-label="Cancel delete" title="Cancel">
+                      <Icon name="close" size={14} />
+                    </button>
                   {:else}
-                    <button
-                      on:click={() => deleteConfirm = item.id}
-                      class="px-3 py-1 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200"
-                    >Delete</button>
+                    <button on:click={() => (deleteConfirm = item.id)} class="mini mini-warn"
+                            aria-label="Delete record" title="Delete">
+                      <Icon name="trash" size={14} />
+                    </button>
                   {/if}
                 </div>
               </td>
@@ -147,88 +228,307 @@
       </table>
     </div>
   {/if}
-</div>
+</section>
 
-<!-- Slide-over form -->
+<!-- Slide-over editor -->
 {#if showForm}
-  <!-- Backdrop -->
-  <div class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" on:click={() => showForm = false} role="presentation"></div>
+  <div
+    class="scrim"
+    on:click={closeForm}
+    on:keydown={null}
+    role="presentation"
+  ></div>
 
-  <!-- Panel -->
-  <div class="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-surface border-l border-border z-50 overflow-y-auto p-8 shadow-2xl">
-    <div class="flex items-center justify-between mb-8">
-      <h3 class="text-xl font-bold text-white">{editing ? 'Edit' : 'Create'} {title}</h3>
-      <button on:click={() => showForm = false} class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
-    </div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="{editing ? 'Edit' : 'Create'} {title}">
+    <header class="drawer-head">
+      <div>
+        <span class="t-micro">&#91; {editing ? 'Editing' : 'New record'} &#93;</span>
+        <h3 class="t-head drawer-title">{title}</h3>
+      </div>
+      <button on:click={closeForm} class="btn btn-ghost drawer-x"
+              aria-label="Close editor" title="Close">
+        <Icon name="close" size={16} />
+      </button>
+    </header>
 
-    <form on:submit|preventDefault={save} class="space-y-5">
+    <form on:submit|preventDefault={save} class="form">
       {#each fields as field}
-        <div>
-          <label class="block text-sm text-slate-400 mb-1.5" for="f-{field.key}">
-            {field.label}
-            {#if field.required}<span class="text-red-400">*</span>{/if}
-          </label>
-
-          {#if field.type === 'textarea'}
-            <textarea
-              id="f-{field.key}"
-              bind:value={form[field.key]}
-              rows="4"
-              class="w-full px-4 py-3 rounded-xl bg-white/5 border border-border text-white placeholder-slate-600 focus:outline-none focus:border-primary resize-none transition-colors"
-              placeholder={field.placeholder ?? ''}
-            ></textarea>
-
-          {:else if field.type === 'boolean'}
-            <label class="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" bind:checked={form[field.key]} class="w-5 h-5 rounded accent-primary" />
-              <span class="text-slate-300 text-sm">{field.label}</span>
+        <div class="row">
+          {#if field.type === 'boolean'}
+            <label class="check">
+              <input
+                type="checkbox"
+                bind:checked={form[field.key]}
+                class="check-box"
+              />
+              <span class="check-label">{field.label}</span>
             </label>
 
-          {:else if field.type === 'number'}
-            <input
-              id="f-{field.key}"
-              type="number"
-              bind:value={form[field.key]}
-              min={field.min}
-              max={field.max}
-              class="w-full px-4 py-3 rounded-xl bg-white/5 border border-border text-white focus:outline-none focus:border-primary transition-colors"
-            />
-
-          {:else if field.type === 'tags'}
-            <input
-              id="f-{field.key}"
-              type="text"
-              value={Array.isArray(form[field.key]) ? form[field.key].join(', ') : (form[field.key] ?? '')}
-              on:input={e => form[field.key] = e.target.value}
-              class="w-full px-4 py-3 rounded-xl bg-white/5 border border-border text-white placeholder-slate-600 focus:outline-none focus:border-primary transition-colors"
-              placeholder="Python, FastAPI, React (comma-separated)"
-            />
-
           {:else}
-            <input
-              id="f-{field.key}"
-              type={field.type === 'url' ? 'url' : 'text'}
-              bind:value={form[field.key]}
-              required={field.required}
-              class="w-full px-4 py-3 rounded-xl bg-white/5 border border-border text-white placeholder-slate-600 focus:outline-none focus:border-primary transition-colors"
-              placeholder={field.placeholder ?? ''}
-            />
+            <label class="label" for="f-{field.key}">
+              {field.label}{#if field.required}<span class="req">*</span>{/if}
+            </label>
+
+            {#if field.type === 'textarea'}
+              <textarea
+                id="f-{field.key}"
+                bind:value={form[field.key]}
+                on:input={() => touch(field.key)}
+                rows="4"
+                class="field area"
+                class:field-bad={errors[field.key]}
+                placeholder={field.placeholder ?? ''}
+                aria-invalid={errors[field.key] ? 'true' : undefined}
+                aria-describedby={errors[field.key] ? `e-${field.key}` : undefined}
+              ></textarea>
+
+            {:else if field.type === 'number'}
+              <input
+                id="f-{field.key}"
+                type="number"
+                bind:value={form[field.key]}
+                on:input={() => touch(field.key)}
+                min={field.min}
+                max={field.max}
+                class="field"
+                class:field-bad={errors[field.key]}
+                aria-invalid={errors[field.key] ? 'true' : undefined}
+                aria-describedby={errors[field.key] ? `e-${field.key}` : undefined}
+              />
+
+            {:else if field.type === 'tags'}
+              <input
+                id="f-{field.key}"
+                type="text"
+                value={Array.isArray(form[field.key]) ? form[field.key].join(', ') : (form[field.key] ?? '')}
+                on:input={(e) => { form[field.key] = e.target.value; touch(field.key); }}
+                class="field"
+                class:field-bad={errors[field.key]}
+                placeholder="Python, FastAPI, React"
+                aria-describedby="h-{field.key}"
+              />
+              <p id="h-{field.key}" class="hint">Separate values with commas.</p>
+
+            {:else}
+              <input
+                id="f-{field.key}"
+                type={field.type === 'url' ? 'url' : 'text'}
+                bind:value={form[field.key]}
+                on:input={() => touch(field.key)}
+                class="field"
+                class:field-bad={errors[field.key]}
+                placeholder={field.placeholder ?? ''}
+                aria-invalid={errors[field.key] ? 'true' : undefined}
+                aria-describedby={errors[field.key] ? `e-${field.key}` : undefined}
+              />
+            {/if}
+
+            {#if errors[field.key]}
+              <p id="e-{field.key}" class="err" role="alert">{errors[field.key]}</p>
+            {/if}
           {/if}
         </div>
       {/each}
 
-      <div class="flex gap-3 pt-4">
-        <button
-          type="submit"
-          disabled={saving}
-          class="flex-1 py-3 rounded-xl font-semibold bg-primary text-dark hover:bg-white transition-all duration-200 disabled:opacity-50"
-        >{saving ? 'Saving…' : (editing ? 'Update' : 'Create')}</button>
-        <button
-          type="button"
-          on:click={() => showForm = false}
-          class="px-6 py-3 rounded-xl font-medium glass border border-border text-slate-400 hover:text-white transition-all duration-200"
-        >Cancel</button>
+      <div class="form-foot">
+        <button type="submit" disabled={saving} class="btn btn-hazard grow"
+                aria-label={editing ? 'Update record' : 'Create record'}
+                title={editing ? 'Update record' : 'Create record'}>
+          <Icon name="check" size={15} />
+        </button>
+        <button type="button" on:click={closeForm} class="btn btn-ghost"
+                aria-label="Cancel" title="Cancel">
+          <Icon name="close" size={15} />
+        </button>
       </div>
     </form>
-  </div>
+  </aside>
 {/if}
+
+<style>
+  .wrap { display: flex; flex-direction: column; gap: 0; }
+
+  /* ─── Header ───────────────────────────────────────────────────────────── */
+  .head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.875rem;
+  }
+  .head-text { display: flex; flex-direction: column; gap: 0.3rem; }
+  .head-title { margin: 0; }
+  .head-count { color: var(--ink-4); }
+  .head-stripe { height: 8px; opacity: 0.16; margin-bottom: 1.25rem; }
+
+  /* ─── Table ────────────────────────────────────────────────────────────── */
+  .tbl-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule-strong);
+  }
+
+  .col-idx { width: 3rem; }
+  .cell-idx { color: var(--ink-4); font-weight: 600; }
+
+  .col-act { width: 1%; white-space: nowrap; text-align: right; }
+
+  .cell {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .acts { display: flex; gap: 0.3rem; justify-content: flex-end; }
+
+  .mini {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-3);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out),
+      border-color 180ms var(--ease-out);
+  }
+  .mini:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .mini-warn { color: var(--hazard-ink); border-color: rgba(230, 25, 25, 0.4); }
+  .mini-warn:hover { background: var(--hazard); color: var(--paper); border-color: var(--hazard); }
+
+  .mini-danger {
+    background: var(--hazard);
+    color: var(--paper);
+    border-color: var(--hazard);
+  }
+  .mini-danger:hover { background: var(--ink); border-color: var(--ink); }
+
+  /* ─── Empty state ──────────────────────────────────────────────────────── */
+  .empty {
+    border: 1px solid var(--rule-strong);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+  .empty-copy {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    color: var(--ink-2);
+    max-width: 58ch;
+  }
+  .empty-skel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 0.5rem;
+  }
+  .skel-row { height: 2rem; }
+  .skel-row:nth-child(2) { width: 86%; }
+  .skel-row:nth-child(3) { width: 68%; }
+
+  /* ─── Drawer ───────────────────────────────────────────────────────────── */
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    background: var(--scrim);
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-modal);
+    width: 100%;
+    max-width: 30rem;
+    background: var(--paper);
+    border-left: 3px solid var(--ink);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .drawer-head {
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .drawer-title { margin: 0.25rem 0 0; }
+  .drawer-x { padding: 0.3rem 0.55rem; }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .row { display: flex; flex-direction: column; }
+  .req { color: var(--hazard); margin-left: 0.15rem; }
+  .area { resize: vertical; min-height: 6rem; }
+
+  .hint {
+    margin: 0.3rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-4);
+  }
+
+  .err {
+    margin: 0.3rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--hazard-ink);
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    padding: 0.3rem 0;
+  }
+  .check-box {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--hazard);
+    flex-shrink: 0;
+  }
+  .check-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .form-foot {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+    margin-top: 0.5rem;
+  }
+  .grow { flex: 1; }
+</style>

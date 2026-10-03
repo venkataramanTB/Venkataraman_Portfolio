@@ -1,237 +1,222 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { reveal } from '$lib/actions/reveal.js';
   import { useGSAP } from '$lib/gsap.js';
+  import BandHead from './BandHead.svelte';
 
   export let profile = null;
   export let stats   = [];
 
   const fallbackStats = [
-    { value: '3+',  suffix: '', label: 'Years of experience'   },
-    { value: '20+', suffix: '', label: 'Projects shipped'      },
-    { value: '4',   suffix: '', label: 'Domains mastered'      },
-    { value: '10+', suffix: '', label: 'Certifications earned' },
+    { value: '3',  suffix: '+', label: 'Years building' },
+    { value: '24', suffix: '',  label: 'Projects shipped' },
+    { value: '4',  suffix: '',  label: 'Disciplines' },
+    { value: '12', suffix: '+', label: 'Certifications' },
   ];
 
-  $: displayStats = stats.length ? stats : fallbackStats;
+  $: displayStats = (stats?.length ? stats : fallbackStats).slice(0, 4);
 
-  let headingEl, bioEl, statsEl, labelEl;
-  let photoWrapEl, bwLayerEl, wipeLineEl;
+  let bioEl, statsEl, asideEl;
   let ctx;
 
   onMount(async () => {
     const g = await useGSAP();
     if (!g) return;
-    const { gsap, ScrollTrigger, SplitText } = g;
+    const { gsap, SplitText } = g;
 
     ctx = gsap.context(() => {
-
-      // ── Section label ──────────────────────────────────────────────────────
-      gsap.from(labelEl, {
-        opacity: 0, x: -30, duration: 0.6,
-        scrollTrigger: { trigger: labelEl, start: 'top 88%' },
-      });
-
-      // ── PHOTO: perspective lean-in → B&W clips away → color revealed ───────
-      if (photoWrapEl && bwLayerEl) {
-        const photoTl = gsap.timeline({
-          scrollTrigger: { trigger: photoWrapEl, start: 'top 68%', once: true },
-        });
-
-        // Step 1: card leans in from a slight Y tilt (gives a "flip" impression)
-        photoTl.fromTo(photoWrapEl,
-          { rotationY: -14, transformPerspective: 1400, opacity: 0 },
-          { rotationY: 0,   opacity: 1, duration: 0.65, ease: 'power3.out' },
-          0
-        );
-
-        // Step 2: B&W overlay clips away left → right, color photo bleeds in
-        photoTl.fromTo(bwLayerEl,
-          { clipPath: 'inset(0 0 0 0%)' },
-          { clipPath: 'inset(0 0 0 100%)', duration: 1.5, ease: 'expo.inOut' },
-          0.22
-        );
-
-        // Step 3: bright wipe line rides the clip boundary
-        if (wipeLineEl) {
-          photoTl.fromTo(wipeLineEl,
-            { left: '0%', opacity: 1 },
-            { left: '100%', opacity: 0, duration: 1.5, ease: 'expo.inOut' },
-            0.22
-          );
-        }
-
-        // Step 4: color glow blooms when photo is fully revealed
-        photoTl.to(photoWrapEl, {
-          boxShadow: '0 0 0 1px rgba(6,182,212,0.14), 0 22px 60px rgba(6,182,212,0.10), 0 0 90px rgba(139,92,246,0.06)',
-          duration: 0.75,
-          ease: 'power2.out',
-        }, '-=0.35');
-      }
-
-      // ── Heading: word-by-word reveal ───────────────────────────────────────
-      if (headingEl) {
-        const split = new SplitText(headingEl, { type: 'words' });
-        gsap.from(split.words, {
-          opacity: 0, y: 32, rotateX: -18, duration: 0.65, stagger: 0.06,
-          ease: 'power3.out', transformOrigin: 'top left',
-          scrollTrigger: { trigger: headingEl, start: 'top 85%' },
+      // Bio: line-by-line mechanical reveal from behind a clip edge
+      if (bioEl) {
+        const split = new SplitText(bioEl, { type: 'lines', linesClass: 'clip-line' });
+        gsap.from(split.lines, {
+          yPercent: 100,
+          opacity: 0,
+          duration: 0.7,
+          stagger: 0.055,
+          ease: 'expo.out',
+          scrollTrigger: { trigger: bioEl, start: 'top 85%' },
         });
       }
 
-      // ── Bio paragraph ──────────────────────────────────────────────────────
-      gsap.from(bioEl, {
-        opacity: 0, y: 24, duration: 0.7,
-        scrollTrigger: { trigger: bioEl, start: 'top 85%' },
-      });
-
-      // ── Stats count-up ─────────────────────────────────────────────────────
+      // Stats count up on their tabular numerals
       if (statsEl) {
-        const numEls = statsEl.querySelectorAll('.stat-val');
-        numEls.forEach((el, i) => {
+        statsEl.querySelectorAll('.stat').forEach((card, i) => {
           const stat   = displayStats[i];
-          if (!stat) return;
-          const target = parseInt(stat.value) || 0;
-          const suffix = stat.value.replace(/^\d+/, '') + (stat.suffix ?? '');
+          const valEl  = card.querySelector('.stat-val');
+          if (!stat || !valEl) return;
+
+          const target = parseInt(String(stat.value).replace(/\D/g, ''), 10) || 0;
+          const suffix = String(stat.value).replace(/^\d+/, '') + (stat.suffix ?? '');
           const obj    = { v: 0 };
 
           gsap.to(obj, {
-            v: target, duration: 2.2, ease: 'power2.out',
-            onUpdate() { el.textContent = Math.round(obj.v) + suffix; },
-            scrollTrigger: {
-              trigger: statsEl, start: 'top 78%',
-              toggleActions: 'play none none none',
-            },
+            v: target,
+            duration: 1.6,
+            ease: 'power2.out',
+            onUpdate() { valEl.textContent = Math.round(obj.v) + suffix; },
+            scrollTrigger: { trigger: statsEl, start: 'top 82%', toggleActions: 'play none none none' },
           });
 
-          gsap.from(el.closest('.stat-card'), {
-            opacity: 0, y: 28, duration: 0.55,
-            delay: i * 0.1, ease: 'power3.out',
-            scrollTrigger: { trigger: statsEl, start: 'top 82%' },
+          gsap.from(card, {
+            opacity: 0,
+            y: 20,
+            duration: 0.5,
+            delay: i * 0.08,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: statsEl, start: 'top 86%' },
           });
         });
       }
 
+      if (asideEl) {
+        gsap.from(asideEl.querySelectorAll('.fact'), {
+          opacity: 0,
+          x: 20,
+          duration: 0.5,
+          stagger: 0.06,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: asideEl, start: 'top 86%' },
+        });
+      }
     });
   });
 
   onDestroy(() => { ctx?.revert(); });
 </script>
 
-<section id="about" class="py-32 px-6 max-w-5xl mx-auto">
-  <hr class="divider mb-16" />
+<section id="about" class="band">
+  <div class="shell">
+    <BandHead index="01" title="Abstract" meta="Sec. 01" />
 
-  <!-- Section label -->
-  <div bind:this={labelEl} class="mb-14">
-    <span class="sec-num text-gradient">01 / About</span>
-  </div>
-
-  <!-- Main grid: photo left, bio right -->
-  <div class="grid lg:grid-cols-[min(300px,38%)_1fr] gap-12 lg:gap-20 mb-20 items-start">
-
-    <!-- Photo: B&W → Color reveal on scroll -->
-    <div bind:this={photoWrapEl} class="photo-wrap">
-      <div class="relative overflow-hidden" style="aspect-ratio:3/4">
-
-        <!-- Color photo (always underneath) -->
-        <img
-          src="/profile_picture.png"
-          alt=""
-          class="absolute inset-0 w-full h-full object-cover object-top"
-          aria-hidden="true"
-          style="filter:contrast(1.06) brightness(0.95) saturate(1.05)"
-        />
-
-        <!-- B&W overlay (clips away from left → right on scroll) -->
-        <img
-          bind:this={bwLayerEl}
-          src="/profile_picture.png"
-          alt={profile?.name ?? 'Venkataraman TB'}
-          class="bw-layer absolute inset-0 w-full h-full object-cover object-top"
-        />
-
-        <!-- Wipe line: thin light bar at the clip boundary -->
-        <div bind:this={wipeLineEl} class="wipe-line" aria-hidden="true"></div>
-
-        <!-- Bottom gradient -->
-        <div class="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
-             style="background:linear-gradient(to bottom,transparent,rgba(8,8,8,0.55) 100%)">
-        </div>
+    <div class="about-grid">
+      <!-- Primary statement -->
+      <div class="about-main">
+        <p bind:this={bioEl} class="statement">
+          {profile?.bio ??
+            'I build intelligent systems end to end — training and serving models, wiring LLM agents into real products, and shipping the native apps and backends that carry them.'}
+        </p>
       </div>
-    </div>
 
-    <!-- Bio column -->
-    <div class="space-y-6">
-      <h2 bind:this={headingEl}
-          class="text-3xl sm:text-4xl font-bold leading-snug tracking-tight"
-          style="color:var(--text)">
-        {profile?.name ?? 'Venkataraman TB'}
-      </h2>
-
-      <p bind:this={bioEl} class="text-base leading-loose" style="color:var(--muted)">
-        {profile?.bio ?? 'I architect intelligent systems that span the full stack — from training ML models and shipping LLM-powered agents to building pixel-perfect iOS apps and high-throughput web backends.'}
-      </p>
-
-      {#if profile?.location || profile?.email}
-        <div use:reveal={{ delay: 220 }} class="flex flex-wrap gap-5 pt-2">
+      <!-- Hard facts, right-aligned definition list -->
+      <aside bind:this={asideEl} class="about-aside">
+        <dl class="facts">
+          {#if profile?.name}
+            <div class="fact">
+              <dt class="t-micro">Operator</dt>
+              <dd class="t-data">{profile.name}</dd>
+            </div>
+          {/if}
           {#if profile?.location}
-            <span class="sec-num">📍 {profile.location}</span>
+            <div class="fact">
+              <dt class="t-micro">Station</dt>
+              <dd class="t-data">{profile.location}</dd>
+            </div>
           {/if}
           {#if profile?.email}
-            <a href="mailto:{profile.email}"
-               class="sec-num hover:text-[var(--text)] transition-colors duration-200">
-              {profile.email}
-            </a>
+            <div class="fact">
+              <dt class="t-micro">Channel</dt>
+              <dd class="t-data"><a href="mailto:{profile.email}" class="link">{profile.email}</a></dd>
+            </div>
           {/if}
-        </div>
-      {/if}
+          {#if profile?.phone}
+            <div class="fact">
+              <dt class="t-micro">Voice</dt>
+              <dd class="t-data">{profile.phone}</dd>
+            </div>
+          {/if}
+          <div class="fact">
+            <dt class="t-micro">Status</dt>
+            <dd class="t-data status">
+              <span class="dot" class:dot-live={profile?.open_to_work !== false} aria-hidden="true"></span>
+              {profile?.open_to_work !== false ? 'Open to offers' : 'Engaged'}
+            </dd>
+          </div>
+        </dl>
+      </aside>
     </div>
 
+    <!-- Metrics: hairline grid, zero cards -->
+    <div bind:this={statsEl} class="metrics grid-hairline">
+      {#each displayStats as stat}
+        <div class="stat">
+          <output class="stat-val">{stat.value}{stat.suffix ?? ''}</output>
+          <span class="t-micro stat-label">{stat.label}</span>
+        </div>
+      {/each}
+    </div>
   </div>
-
-  <!-- Stats strip -->
-  <div bind:this={statsEl} class="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-10">
-    {#each displayStats.slice(0, 4) as stat}
-      <div class="stat-card text-left">
-        <p class="stat-val text-3xl font-bold tracking-tight" style="color:var(--text)">
-          {stat.value}{stat.suffix ?? ''}
-        </p>
-        <p class="sec-num mt-1">{stat.label}</p>
-      </div>
-    {/each}
-  </div>
-
 </section>
 
 <style>
-  /* GSAP will tween rotationY + opacity via will-change */
-  .photo-wrap {
-    will-change: transform, opacity, box-shadow;
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+    margin-bottom: clamp(2.5rem, 6vh, 4rem);
+  }
+  @media (min-width: 900px) {
+    .about-grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
   }
 
-  /* Starts fully covering the color image; GSAP clips it away left → right */
-  .bw-layer {
-    filter: grayscale(1) contrast(1.08) brightness(0.92) saturate(0);
-    clip-path: inset(0 0 0 0%);
+  /* The one piece of oversized editorial type in the body of the page */
+  .statement {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.25rem, 2.9vw, 2.05rem);
+    line-height: 1.22;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin: 0;
+    max-width: 30ch;
+    text-wrap: pretty;
   }
 
-  /* Thin bright edge that rides the wipe boundary */
-  .wipe-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 3px;
-    height: 100%;
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      rgba(255, 255, 255, 0.55) 25%,
-      rgba(255, 255, 255, 0.80) 50%,
-      rgba(255, 255, 255, 0.55) 75%,
-      transparent 100%
-    );
-    z-index: 20;
-    opacity: 0;
-    pointer-events: none;
+  /* SplitText wraps each line in this — gives the clip edge to slide from */
+  .statement :global(.clip-line) { overflow: hidden; }
+
+  .facts {
+    margin: 0;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .fact {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .fact dt { margin: 0; }
+  .fact dd { margin: 0; color: var(--ink); }
+  .status { display: inline-flex; align-items: center; gap: 0.45rem; }
+  .dot { width: 6px; height: 6px; background: var(--ink-4); }
+  .dot-live { background: var(--hazard); }
+
+  /* ─── Metrics ──────────────────────────────────────────────────────────── */
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+    border: 1px solid var(--rule);
+  }
+  @media (min-width: 760px) {
+    .metrics { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .stat {
+    padding: 1.25rem 1.125rem 1.375rem;
+  }
+  .stat-val {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--ink-3);
   }
 </style>

@@ -2,172 +2,597 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   SWISS INDUSTRIAL PRINT — design tokens
+   One substrate (matte documentation paper). One accent (aviation red).
+   No gradients. No border-radius. No soft shadows. Hairlines and grids only.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg:       #080808;
-  --surface:  #111111;
-  --border:   #1a1a1a;
-  --text:     #eaeaea;
-  --muted:    #4a4a4a;
-  --accent:   #06b6d4;   /* cyan  */
-  --accent2:  #8b5cf6;   /* violet */
-  --glow:     rgba(6, 182, 212, 0.12);
-  --glow2:    rgba(139, 92, 246, 0.08);
+  color-scheme: light;
+
+  /* Substrate — Swiss Industrial Print (light) */
+  --paper:      #f4f4f0;   /* unbleached documentation paper */
+  --paper-sunk: #eae8e3;   /* recessed panel / table stripe  */
+  --paper-ink:  #e2e0da;   /* deepest paper tone             */
+
+  /* Carbon ink — single cool-neutral gray family */
+  --ink:    #0a0a0a;
+  --ink-2:  #35352f;
+  --ink-3:  #6e6e67;
+  --ink-4:  #9b9b93;
+
+  /* Hairlines */
+  --rule:        rgba(10, 10, 10, 0.16);
+  --rule-strong: rgba(10, 10, 10, 0.42);
+  --rule-heavy:  #0a0a0a;
+
+  /* The only accent */
+  --hazard:     #e61919;
+  --hazard-ink: #b31313;
+
+  /* Substrate-dependent effects. These flip in dark mode, so nothing
+     should hard-code a blend mode or an rgba(10,10,10,…) line again. */
+  --grid-line:  rgba(10, 10, 10, 0.045);  /* blueprint column guides */
+  --sheen:      rgba(10, 10, 10, 0.05);   /* skeleton sweep          */
+  --scrim:      rgba(10, 10, 10, 0.4);    /* modal backdrop          */
+  --grain-blend: multiply;                /* noise film              */
+  --grain-alpha: 0.33;
+  --plate-blend: multiply;                /* photographic print bed  */
+  --plate-filter: grayscale(1) contrast(1.22) brightness(1.04);
+  --mark-invert: 0;                       /* dark logo artwork        */
+
+  /* Type */
+  --font-display: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Measure */
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --shell:  1440px;
+
+  /* Systemic z-index scale — no arbitrary values anywhere */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-nav:     20;
+  --z-overlay: 30;
+  --z-modal:   40;
+  --z-grain:   50;
+
+  /* Motion — weighted, never linear */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-mech: cubic-bezier(0.83, 0, 0.17, 1);
 }
 
-* { box-sizing: border-box; }
+/* ──────────────────────────────────────────────────────────────────────────────
+   DARK SUBSTRATE — "Tactical Telemetry"
+   Not an inversion of the paper theme: a deactivated-CRT ground with white
+   phosphor type and the same single hazard accent, brightened for contrast
+   against black. Defined once and shared by the system-preference and the
+   explicit-override selectors below.
+   ────────────────────────────────────────────────────────────────────────────── */
 
-html { scroll-behavior: smooth; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --paper:      #0a0a0a;   /* deactivated CRT — never pure #000 */
+    --paper-sunk: #151515;
+    --paper-ink:  #1e1e1e;
+
+    --ink:    #eaeaea;       /* white phosphor */
+    --ink-2:  #b4b4ae;
+    --ink-3:  #86867f;
+    --ink-4:  #5d5d57;
+
+    --rule:        rgba(234, 234, 234, 0.16);
+    --rule-strong: rgba(234, 234, 234, 0.38);
+    --rule-heavy:  #eaeaea;
+
+    --hazard:     #ff2a2a;
+    --hazard-ink: #ff5c5c;
+
+    --grid-line:  rgba(234, 234, 234, 0.05);
+    --sheen:      rgba(234, 234, 234, 0.06);
+    --scrim:      rgba(0, 0, 0, 0.6);
+    --grain-blend: screen;
+    --grain-alpha: 0.22;
+    --plate-blend: screen;
+    --plate-filter: grayscale(1) contrast(1.15) brightness(0.92);
+    --mark-invert: 1;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --paper:      #0a0a0a;
+  --paper-sunk: #151515;
+  --paper-ink:  #1e1e1e;
+
+  --ink:    #eaeaea;
+  --ink-2:  #b4b4ae;
+  --ink-3:  #86867f;
+  --ink-4:  #5d5d57;
+
+  --rule:        rgba(234, 234, 234, 0.16);
+  --rule-strong: rgba(234, 234, 234, 0.38);
+  --rule-heavy:  #eaeaea;
+
+  --hazard:     #ff2a2a;
+  --hazard-ink: #ff5c5c;
+
+  --grid-line:  rgba(234, 234, 234, 0.05);
+  --sheen:      rgba(234, 234, 234, 0.06);
+  --scrim:      rgba(0, 0, 0, 0.6);
+  --grain-blend: screen;
+  --grain-alpha: 0.22;
+  --plate-blend: screen;
+  --plate-filter: grayscale(1) contrast(1.15) brightness(0.92);
+  --mark-invert: 1;
+}
+
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important; /* mechanical rigidity: 90° corners only */
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 body {
-  font-family: 'Space Grotesk', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
   overflow-x: hidden;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection { background: var(--accent); color: #000; }
-
-::-webkit-scrollbar { width: 2px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-/* ─── Glow blob (follows cursor, set in layout) ────────────────────────────── */
-.glow-blob {
-  position: fixed;
-  width: 700px;
-  height: 700px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center,
-    rgba(6, 182, 212, 0.045) 0%,
-    rgba(139, 92, 246, 0.025) 45%,
-    transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-  will-change: transform;
-  transform: translate(-50%, -50%);
-  top: 50%;
-  left: 50%;
+::selection {
+  background: var(--hazard);
+  color: var(--paper);
 }
 
-/* ─── Noise film grain ─────────────────────────────────────────────────────── */
-.noise::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9998;
-  opacity: 0.38;
-}
+/* Thin mechanical scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--paper-sunk); }
+::-webkit-scrollbar-thumb { background: var(--ink); border: 3px solid var(--paper-sunk); }
+::-webkit-scrollbar-thumb:hover { background: var(--hazard); }
 
-/* ─── Hero canvas ──────────────────────────────────────────────────────────── */
-.hero-canvas {
+/* ─── Accessibility ────────────────────────────────────────────────────────── */
+
+.skip-link {
   position: absolute;
-  inset: 0 0 auto 0;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.12;
+  left: -9999px;
+  top: 0;
+  z-index: var(--z-modal);
+  padding: 0.75rem 1.25rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; }
+
+:focus-visible {
+  outline: 2px solid var(--hazard);
+  outline-offset: 3px;
 }
 
-/* ─── Gradient text ────────────────────────────────────────────────────────── */
-.text-gradient {
-  background: linear-gradient(120deg, var(--accent) 0%, var(--accent2) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* ══════════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Macro — monolithic structural headers. Uppercase, tight, compressed. */
+.t-macro {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(3.25rem, 11vw, 11rem);
+  line-height: 0.85;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-wrap: balance;
 }
 
-/* ─── CTA buttons ──────────────────────────────────────────────────────────── */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 5.5vw, 4.25rem);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.t-head {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+/* Micro — telemetry. All metadata, labels, nav, coordinates. */
+.t-micro {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.t-micro-ink { color: var(--ink); }
+
+/* Legacy alias — existing markup uses .sec-num */
+.sec-num {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Body copy — measured to ~68 characters */
+.t-body {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: var(--ink-2);
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+
+.t-lead {
+  font-family: var(--font-mono);
+  font-size: clamp(0.95rem, 1.5vw, 1.0625rem);
+  line-height: 1.65;
+  color: var(--ink-2);
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* Index numerals — oversized, structural */
+.t-idx {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.t-data {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LAYOUT — the blueprint grid
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Section: optically adjusted vertical padding (bottom slightly heavier) */
+.band {
+  padding-top: clamp(4rem, 9vh, 7rem);
+  padding-bottom: clamp(4.75rem, 11vh, 8.5rem);
+  border-top: 1px solid var(--rule);
+  position: relative;
+}
+
+/* Section header: hazard bar + index + title, left-anchored */
+.band-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.875rem;
+  align-items: baseline;
+  margin-bottom: clamp(2rem, 5vh, 3.5rem);
+}
+
+.band-rule {
+  height: 1px;
+  background: var(--rule);
+  border: 0;
+  margin: 0;
+}
+
+.band-rule-heavy {
+  height: 3px;
+  background: var(--ink);
+  border: 0;
+  margin: 0;
+}
+
+/* Razor-thin dividing lines via grid gap over an ink parent */
+.grid-hairline {
+  display: grid;
+  gap: 1px;
+  background: var(--rule);
+}
+.grid-hairline > * { background: var(--paper); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   COMPONENTS
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Buttons: squared, bordered, mechanical press ─────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.6rem 1.1rem;
-  border-radius: 8px;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-  transition: box-shadow 200ms ease;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 220ms var(--ease-out),
+    color 220ms var(--ease-out),
+    border-color 220ms var(--ease-out),
+    transform 120ms var(--ease-out);
 }
 .btn:hover {
-  box-shadow: 0 0 18px rgba(6, 182, 212, 0.2);
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
 }
-.btn-primary {
-  background: linear-gradient(90deg, rgba(6,182,212,0.1), rgba(139,92,246,0.06));
-  border-color: rgba(6,182,212,0.5);
-  color: var(--accent);
+.btn:active { transform: translateY(1px); }
+
+.btn-hazard {
+  background: var(--hazard);
+  border-color: var(--hazard);
+  color: var(--paper);
 }
-.btn-primary:hover {
-  border-color: var(--accent);
-  box-shadow: 0 0 22px rgba(6,182,212,0.25);
+.btn-hazard:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 
-/* ─── Section label ────────────────────────────────────────────────────────── */
-h1, h2, h3 { letter-spacing: -0.01em; }
-
-.sec-num {
-  font-size: 0.65rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 500;
+.btn[aria-disabled='true'],
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
-/* ─── Tags ─────────────────────────────────────────────────────────────────── */
+/* ─── Tag: square spec chip, no pill ──────────────────────────────────────── */
 .tag {
   display: inline-block;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  font-size: 0.72rem;
+  padding: 3px 7px;
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
   font-weight: 500;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-  transition: color 0.25s, border-color 0.25s, box-shadow 0.25s;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
   white-space: nowrap;
+  transition:
+    color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out),
+    background-color 200ms var(--ease-out);
 }
 .tag:hover {
-  color: var(--accent);
-  border-color: rgba(6,182,212,0.4);
-  box-shadow: 0 0 10px rgba(6,182,212,0.12);
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
-/* ─── Divider ──────────────────────────────────────────────────────────────── */
-.divider {
-  border: none;
-  border-top: 1px solid var(--border);
+/* ─── Data row: the primary content pattern (replaces cards) ──────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr auto;
+  gap: 1rem 1.25rem;
+  align-items: start;
+  padding: 1.5rem 0.75rem 1.5rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 240ms var(--ease-out);
+}
+.row:first-child { border-top: 1px solid var(--rule); }
+.row:hover { background: var(--paper-sunk); }
+
+/* Hazard bar slides in from the left edge on hover */
+.row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--hazard);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 280ms var(--ease-mech);
+}
+.row:hover::before { transform: scaleY(1); }
+
+.row:hover .row-idx { color: var(--hazard); }
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
 }
 
-/* ─── Marquee (Skills strip) ───────────────────────────────────────────────── */
+/* ─── Marquee ──────────────────────────────────────────────────────────────── */
 .marquee-outer {
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
 .marquee-track {
   display: flex;
-  gap: 2.5rem;
+  align-items: center;
+  gap: 1.75rem;
   width: max-content;
   will-change: transform;
 }
 
-/* ─── Scroll-cue ───────────────────────────────────────────────────────────── */
-@keyframes scroll-cue {
-  0%   { transform: translateY(-100%); opacity: 0; }
-  30%  { opacity: 1; }
-  70%  { opacity: 1; }
-  100% { transform: translateY(100%); opacity: 0; }
+/* ══════════════════════════════════════════════════════════════════════════════
+   TEXTURE — analog degradation
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Global mechanical noise. Fixed + pointer-events:none, never on a scroller. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grain);
+  pointer-events: none;
+  opacity: var(--grain-alpha);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+  mix-blend-mode: var(--grain-blend);
 }
-.scroll-cue { animation: scroll-cue 2s ease-in-out infinite; }
 
-/* ─── SplitText clip ───────────────────────────────────────────────────────── */
-.split-parent { overflow: hidden; display: block; }
+/* Halftone dot matrix — applied behind macro type and imagery */
+.halftone {
+  background-image: radial-gradient(var(--rule-strong) 0.75px, transparent 0.75px);
+  background-size: 5px 5px;
+}
 
-/* ─── Project row hover accent ─────────────────────────────────────────────── */
-.proj-row { cursor: default; }
-.proj-row:hover .proj-num { color: var(--accent); }
+/* Hazard stripes — thick diagonal warning bar */
+.hazard-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ink) 0 8px,
+    transparent 8px 16px
+  );
+}
+
+/* Registration crosshair at grid intersections */
+.crosshair {
+  position: relative;
+}
+.crosshair::before,
+.crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--rule-strong);
+  pointer-events: none;
+}
+.crosshair::before {
+  left: -4px; top: 50%;
+  width: 9px; height: 1px;
+  transform: translateY(-50%);
+}
+.crosshair::after {
+  top: -4px; left: 50%;
+  width: 1px; height: 9px;
+  transform: translateX(-50%);
+}
+
+/* Vertical barcode rule */
+.barcode {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--ink) 0 1px,
+    transparent 1px 3px,
+    var(--ink) 3px 5px,
+    transparent 5px 9px
+  );
+}
+
+/* Print-plate duotone for photography */
+.plate {
+  filter: var(--plate-filter);
+  mix-blend-mode: var(--plate-blend);
+}
+
+/* ─── Link with mechanical underline wipe ─────────────────────────────────── */
+.link {
+  position: relative;
+  color: var(--ink);
+  text-decoration: none;
+  background-image: linear-gradient(var(--hazard), var(--hazard));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 260ms var(--ease-out), color 260ms var(--ease-out);
+}
+.link:hover {
+  background-size: 100% 1px;
+  color: var(--hazard);
+}
+
+/* ─── Scroll cue ───────────────────────────────────────────────────────────── */
+@keyframes scroll-cue {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+.scroll-cue { animation: scroll-cue 2.4s var(--ease-mech) infinite; }
+
+@keyframes blink {
+  0%, 49%  { opacity: 1; }
+  50%, 100%{ opacity: 0; }
+}
+.blink { animation: blink 1.1s step-end infinite; }
+
+/* ─── Skeleton loader (shape-matched, not a spinner) ──────────────────────── */
+@keyframes sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-sunk);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--sheen), transparent);
+  animation: sweep 1.4s var(--ease-out) infinite;
+}
+
+/* Clip wrapper for GSAP SplitText line reveals.
+   The padding/negative-margin pair buys horizontal slack so a heavy glyph's
+   right side bearing is never shaved by `overflow: hidden`, which is only
+   there to mask the vertical slide-in. */
+.clip {
+  overflow: hidden;
+  display: block;
+  padding-right: 0.12em;
+  margin-right: -0.12em;
+}

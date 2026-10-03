@@ -29,17 +29,17 @@
 
 <div class="space-y-8">
   <div>
-    <h1 class="text-3xl font-black text-white mb-1">Dashboard</h1>
-    <p class="text-slate-500 text-sm">Portfolio content overview</p>
+    <h1 class="text-3xl font-black text-ink mb-1">Dashboard</h1>
+    <p class="text-ink-3 text-sm">Portfolio content overview</p>
   </div>
 
   {#if loading}
     <div class="grid grid-cols-2 lg:grid-cols-3 gap-5">
       {#each Array(6) as _}
         <div class="glass rounded-2xl border border-border p-6 animate-pulse">
-          <div class="w-8 h-8 rounded-lg bg-white/5 mb-3"></div>
-          <div class="h-8 w-12 bg-white/5 rounded mb-2"></div>
-          <div class="h-4 w-20 bg-white/5 rounded"></div>
+          <div class="w-8 h-8 rounded-lg bg-ink/5 mb-3"></div>
+          <div class="h-8 w-12 bg-ink/5 rounded mb-2"></div>
+          <div class="h-4 w-20 bg-ink/5 rounded"></div>
         </div>
       {/each}
     </div>
@@ -51,31 +51,31 @@
           class="glass rounded-2xl border border-border p-6 hover:border-primary/30 transition-all duration-300 group"
         >
           <span class="text-3xl mb-3 block">{item.icon}</span>
-          <p class="text-4xl font-black text-white mb-1 group-hover:gradient-text transition-all">{item.value}</p>
-          <p class="text-sm text-slate-500">{item.label}</p>
+          <p class="stat-figure">{item.value}</p>
+          <p class="text-sm text-ink-3">{item.label}</p>
         </a>
       {/each}
     </div>
 
     {#if data?.profile}
       <div class="glass rounded-2xl border border-border p-6">
-        <h2 class="font-bold text-white mb-3">Profile</h2>
+        <h2 class="font-bold text-ink mb-3">Profile</h2>
         <div class="grid sm:grid-cols-2 gap-4 text-sm">
-          <div><span class="text-slate-500">Name:</span> <span class="text-slate-200 ml-2">{data.profile.name}</span></div>
-          <div><span class="text-slate-500">Email:</span> <span class="text-slate-200 ml-2">{data.profile.email ?? '—'}</span></div>
-          <div><span class="text-slate-500">Location:</span> <span class="text-slate-200 ml-2">{data.profile.location ?? '—'}</span></div>
+          <div><span class="text-ink-3">Name:</span> <span class="text-ink-2 ml-2">{data.profile.name}</span></div>
+          <div><span class="text-ink-3">Email:</span> <span class="text-ink-2 ml-2">{data.profile.email ?? '—'}</span></div>
+          <div><span class="text-ink-3">Location:</span> <span class="text-ink-2 ml-2">{data.profile.location ?? '—'}</span></div>
           <div>
-            <span class="text-slate-500">Status:</span>
-            <span class="ml-2 {data.profile.open_to_work ? 'text-green-400' : 'text-slate-400'}">
+            <span class="text-ink-3">Status:</span>
+            <span class="ml-2 {data.profile.open_to_work ? 'text-ink font-semibold' : 'text-ink-3'}">
               {data.profile.open_to_work ? '● Open to work' : '○ Not available'}
             </span>
           </div>
         </div>
-        <a href="/dashboard/profile" class="mt-4 inline-flex text-xs text-primary hover:text-white transition-colors">Edit profile →</a>
+        <a href="/dashboard/profile" class="mt-4 inline-flex text-xs text-primary hover:text-ink transition-colors">Edit profile →</a>
       </div>
     {:else}
-      <div class="glass rounded-2xl border border-border p-6 text-center text-slate-500">
-        No profile created yet. <a href="/dashboard/profile" class="text-primary hover:text-white transition-colors">Create one →</a>
+      <div class="glass rounded-2xl border border-border p-6 text-center text-ink-3">
+        No profile created yet. <a href="/dashboard/profile" class="text-primary hover:text-ink transition-colors">Create one →</a>
       </div>
     {/if}
   {/if}

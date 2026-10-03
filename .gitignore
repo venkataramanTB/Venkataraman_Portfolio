@@ -14,3 +14,6 @@ dist/
 *.egg-info/
 .DS_Store
 Thumbs.db
+
+# Vendored third-party agent skills — reinstall with `npx skills add` using skills-lock.json
+.agents/

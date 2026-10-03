@@ -59,27 +59,27 @@
 <svelte:head><title>CV Import — VTB Admin</title></svelte:head>
 
 <div class="space-y-8 max-w-2xl">
-  <h1 class="text-3xl font-black text-white">CV Import</h1>
+  <h1 class="text-3xl font-black text-ink">CV Import</h1>
 
   <!-- Status card -->
   {#if status?.has_cv}
-    <div class="glass rounded-2xl border border-green-400/20 p-5 flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-green-400/10 border border-green-400/20 flex items-center justify-center text-xl shrink-0">✓</div>
+    <div class="glass rounded-2xl border border-ink/20 p-5 flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-ink/10 border border-ink/20 flex items-center justify-center text-xl shrink-0">✓</div>
       <div class="min-w-0">
-        <p class="font-semibold text-white text-sm">{status.filename}</p>
-        <p class="text-xs text-slate-500 mt-0.5">
+        <p class="font-semibold text-ink text-sm">{status.filename}</p>
+        <p class="text-xs text-ink-3 mt-0.5">
           {status.chunks_count} chunks · {status.has_embeddings ? '🔮 Vector search enabled' : '📝 Text search mode'}
         </p>
       </div>
-      <span class="ml-auto text-xs text-slate-600 shrink-0">Active CV</span>
+      <span class="ml-auto text-xs text-ink-4 shrink-0">Active CV</span>
     </div>
   {/if}
 
   <!-- PDF Upload -->
   <div class="glass rounded-2xl border border-border p-6 space-y-5">
     <div>
-      <h2 class="text-lg font-bold text-white mb-1">Upload PDF Resume</h2>
-      <p class="text-sm text-slate-500">Claude will read your CV and auto-fill all portfolio sections.</p>
+      <h2 class="text-lg font-bold text-ink mb-1">Upload PDF Resume</h2>
+      <p class="text-sm text-ink-3">Claude will read your CV and auto-fill all portfolio sections.</p>
     </div>
 
     <!-- Drop zone -->
@@ -101,14 +101,14 @@
       {#if uploading}
         <div class="flex flex-col items-center gap-3">
           <div class="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p class="text-sm text-slate-400">Claude is parsing your CV…</p>
+          <p class="text-sm text-ink-3">Claude is parsing your CV…</p>
         </div>
       {:else}
         <div class="flex flex-col items-center gap-3 pointer-events-none">
           <span class="text-4xl opacity-60">📄</span>
           <div>
-            <p class="text-white font-medium">Drop your PDF here</p>
-            <p class="text-sm text-slate-500 mt-1">or click to browse</p>
+            <p class="text-ink font-medium">Drop your PDF here</p>
+            <p class="text-sm text-ink-3 mt-1">or click to browse</p>
           </div>
         </div>
       {/if}
@@ -118,7 +118,7 @@
   <!-- Result -->
   {#if result}
     <div class="glass rounded-2xl border border-primary/20 p-6 space-y-4">
-      <p class="font-semibold text-white text-sm">✨ Import complete</p>
+      <p class="font-semibold text-ink text-sm">✨ Import complete</p>
       <div class="grid grid-cols-3 gap-3">
         {#each [
           ['Skills', result.skills_created, '⚡'],
@@ -131,19 +131,19 @@
           <div class="glass rounded-xl p-3 border border-border text-center">
             <p class="text-lg">{icon}</p>
             <p class="text-xl font-black text-primary">{count}</p>
-            <p class="text-xs text-slate-500">{label}</p>
+            <p class="text-xs text-ink-3">{label}</p>
           </div>
         {/each}
       </div>
-      <p class="text-xs text-slate-500">{result.message}</p>
+      <p class="text-xs text-ink-3">{result.message}</p>
     </div>
   {/if}
 
   <!-- LinkedIn Sync -->
   <div class="glass rounded-2xl border border-border p-6 space-y-4">
     <div>
-      <h2 class="text-lg font-bold text-white mb-1">Sync from LinkedIn</h2>
-      <p class="text-sm text-slate-500">
+      <h2 class="text-lg font-bold text-ink mb-1">Sync from LinkedIn</h2>
+      <p class="text-sm text-ink-3">
         Paste your LinkedIn profile URL. With a
         <a href="https://nubela.co/proxycurl" target="_blank" rel="noopener" class="text-primary hover:underline">Proxycurl</a>
         API key configured on Render, this syncs your full profile.
@@ -156,7 +156,7 @@
         type="url"
         bind:value={linkedinUrl}
         placeholder="https://linkedin.com/in/your-profile"
-        class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-border text-white placeholder-slate-600 focus:outline-none focus:border-primary transition-colors text-sm"
+        class="flex-1 px-4 py-3 rounded-xl bg-ink/5 border border-border text-ink placeholder-ink-4 focus:outline-none focus:border-primary transition-colors text-sm"
       />
       <button
         on:click={handleLinkedIn}
@@ -169,17 +169,17 @@
 
     {#if linkedinResult}
       <div class="rounded-xl px-4 py-3 text-sm border"
-        class:border-green-400={linkedinResult.status === 'success'}
-        class:text-green-400={linkedinResult.status === 'success'}
-        class:border-yellow-400={linkedinResult.status === 'partial'}
-        class:text-yellow-400={linkedinResult.status === 'partial'}
-        class:bg-green-400={linkedinResult.status === 'success'}
-        class:bg-yellow-400={linkedinResult.status === 'partial'}
+        class:border-ink={linkedinResult.status === 'success'}
+        class:text-ink={linkedinResult.status === 'success'}
+        class:border-hazard={linkedinResult.status === 'partial'}
+        class:text-hazard={linkedinResult.status === 'partial'}
+        class:bg-ink={linkedinResult.status === 'success'}
+        class:bg-hazard={linkedinResult.status === 'partial'}
         style="background-color: transparent;"
       >
         {linkedinResult.message}
         {#if linkedinResult.proxycurl_required}
-          <br/><span class="text-slate-500 text-xs">Set PROXYCURL_API_KEY on Render to enable full profile sync.</span>
+          <br/><span class="text-ink-3 text-xs">Set PROXYCURL_API_KEY on Render to enable full profile sync.</span>
         {/if}
       </div>
     {/if}

@@ -2,24 +2,34 @@
   import { onMount, tick } from 'svelte';
   import { gsap } from 'gsap';
   import { streamChat } from '$lib/api.js';
+  import Icon from './Icon.svelte';
 
-  let open = false;
-  let messages = [];
-  let input = '';
+  let open      = false;
+  let messages  = [];
+  let input     = '';
   let streaming = false;
-  let panel, messagesEl, btnEl;
-  let mounted = false;
+  let errored   = false;
+  let mounted   = false;
+  let panel, messagesEl, btnEl, inputEl;
 
-  const GREETING = "Hi! I'm Venkataraman's AI assistant. Ask me anything about his skills, experience, projects, or achievements! 👋";
+  const GREETING =
+    "Terminal open. Ask about Venkataraman's stack, service record, builds or credentials.";
+
+  const PROMPTS = [
+    'What has he shipped with PyTorch?',
+    'Summarise his iOS work.',
+    'Which backends has he run in production?',
+  ];
 
   onMount(async () => {
     mounted = true;
     messages = [{ role: 'assistant', content: GREETING }];
     await tick();
     if (btnEl) {
-      gsap.fromTo(btnEl,
-        { scale: 0, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)', delay: 2 }
+      gsap.fromTo(
+        btnEl,
+        { yPercent: 130 },
+        { yPercent: 0, duration: 0.6, ease: 'expo.out', delay: 1.6 }
       );
     }
   });
@@ -28,13 +38,20 @@
     if (!open) {
       open = true;
       await tick();
-      gsap.fromTo(panel,
-        { opacity: 0, y: 30, scale: 0.92 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'power3.out' }
+      // Hard mechanical open: wipe up from the bottom edge, no scale, no fade
+      gsap.fromTo(
+        panel,
+        { clipPath: 'inset(100% 0 0 0)' },
+        { clipPath: 'inset(0% 0 0 0)', duration: 0.42, ease: 'expo.out' }
       );
       scrollBottom();
+      inputEl?.focus();
     } else {
-      await gsap.to(panel, { opacity: 0, y: 20, scale: 0.95, duration: 0.25, ease: 'power2.in' });
+      await gsap.to(panel, {
+        clipPath: 'inset(100% 0 0 0)',
+        duration: 0.26,
+        ease: 'power2.in',
+      });
       open = false;
     }
   }
@@ -45,10 +62,11 @@
     });
   }
 
-  async function send() {
-    const text = input.trim();
+  async function send(preset) {
+    const text = (preset ?? input).trim();
     if (!text || streaming) return;
-    input = '';
+    if (!preset) input = '';
+    errored = false;
 
     messages = [...messages, { role: 'user', content: text }];
     messages = [...messages, { role: 'assistant', content: '' }];
@@ -56,17 +74,21 @@
     scrollBottom();
 
     try {
-      const history = messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+      const history = messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
       for await (const chunk of streamChat(history)) {
         messages[messages.length - 1] = {
           role: 'assistant',
           content: messages[messages.length - 1].content + chunk,
         };
-        messages = messages; // trigger reactivity
+        messages = messages;
         scrollBottom();
       }
     } catch (e) {
-      messages[messages.length - 1] = { role: 'assistant', content: `Sorry, I ran into an issue: ${e.message}` };
+      errored = true;
+      messages[messages.length - 1] = {
+        role: 'assistant',
+        content: `Connection failed. ${e.message}`,
+      };
       messages = messages;
     } finally {
       streaming = false;
@@ -75,102 +97,303 @@
   }
 
   function onKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+
+  function onPanelKey(e) {
+    if (e.key === 'Escape' && open) toggle();
   }
 </script>
 
+<svelte:window on:keydown={onPanelKey} />
+
 {#if mounted}
-  <!-- Floating button -->
+  <!-- Launcher: a squared tab anchored to the bottom-right, not a floating orb -->
   <button
     bind:this={btnEl}
     on:click={toggle}
-    class="fixed bottom-6 right-6 z-[9000] w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95"
-    style="background: linear-gradient(135deg, #a78bfa, #38bdf8); box-shadow: 0 0 30px rgba(167,139,250,0.5);"
-    aria-label="Chat with AI"
+    class="launcher"
+    aria-expanded={open}
+    aria-controls="chat-panel"
   >
-    {#if open}
-      <span class="text-xl text-white font-bold">×</span>
-    {:else}
-      <span class="text-xl">🤖</span>
-      <!-- Pulse ring -->
-      <span class="absolute inset-0 rounded-full animate-ping opacity-20"
-        style="background: linear-gradient(135deg, #a78bfa, #38bdf8);"></span>
-    {/if}
+    <span class="launcher-dot" class:launcher-dot-live={streaming} aria-hidden="true"></span>
+    <Icon name={open ? 'close' : 'chat'} size={18}
+          label={open ? 'Close assistant' : 'Ask the AI assistant'} />
   </button>
 
-  <!-- Chat panel -->
   {#if open}
-    <div
-      bind:this={panel}
-      class="fixed bottom-24 right-6 z-[9000] w-[360px] max-w-[calc(100vw-2rem)] flex flex-col rounded-3xl border border-white/10 shadow-2xl overflow-hidden"
-      style="height: 520px; background: rgba(10,10,15,0.95); backdrop-filter: blur(24px);"
-    >
+    <aside bind:this={panel} id="chat-panel" class="panel" aria-label="AI assistant">
       <!-- Header -->
-      <div class="px-5 py-4 border-b border-white/10 shrink-0"
-        style="background: linear-gradient(135deg, rgba(167,139,250,0.15), rgba(56,189,248,0.1));">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-            style="background: linear-gradient(135deg, #a78bfa, #38bdf8);">🤖</div>
-          <div>
-            <p class="text-sm font-bold text-white">Ask about Venkataraman</p>
-            <div class="flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-green-400 {streaming ? 'animate-pulse' : ''}"></span>
-              <p class="text-xs text-slate-500">{streaming ? 'Typing…' : 'AI Assistant · Online'}</p>
-            </div>
-          </div>
+      <header class="panel-head">
+        <div class="panel-head-row">
+          <span class="t-micro panel-title">&#91; Query Terminal &#93;</span>
+          <span class="t-micro panel-stat">
+            <span class="dot" class:dot-live={streaming} class:dot-bad={errored} aria-hidden="true"></span>
+            {errored ? 'Error' : streaming ? 'Receiving' : 'Ready'}
+          </span>
         </div>
-      </div>
+        <div class="hazard-stripes panel-stripe" aria-hidden="true"></div>
+      </header>
 
-      <!-- Messages -->
-      <div bind:this={messagesEl} class="flex-1 overflow-y-auto p-4 space-y-3">
+      <!-- Transcript -->
+      <div bind:this={messagesEl} class="log" role="log" aria-live="polite">
         {#each messages as msg, i (i)}
-          <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
-            <div
-              class="max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
-              class:rounded-br-sm={msg.role === 'user'}
-              class:rounded-bl-sm={msg.role !== 'user'}
-              style={msg.role === 'user'
-                ? 'background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white;'
-                : 'background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.08);'}
-            >
+          <article class="msg" class:msg-user={msg.role === 'user'}>
+            <span class="msg-who t-micro">{msg.role === 'user' ? 'You' : 'Sys'}</span>
+            <div class="msg-body">
               {#if msg.role === 'assistant' && !msg.content && streaming}
-                <span class="inline-flex gap-1 items-center h-4">
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style="animation-delay:0ms"></span>
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style="animation-delay:150ms"></span>
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style="animation-delay:300ms"></span>
+                <span class="wait" aria-label="Waiting for response">
+                  <span class="wait-bar"></span><span class="wait-bar"></span><span class="wait-bar"></span>
                 </span>
               {:else}
                 {msg.content}
               {/if}
             </div>
-          </div>
+          </article>
         {/each}
+
+        <!-- Suggested queries, only before the first exchange -->
+        {#if messages.length === 1 && !streaming}
+          <div class="prompts">
+            <span class="t-micro prompts-label">Try</span>
+            {#each PROMPTS as p}
+              <button class="prompt" on:click={() => send(p)}>{p}</button>
+            {/each}
+          </div>
+        {/if}
       </div>
 
-      <!-- Input -->
-      <div class="px-4 py-3 border-t border-white/10 shrink-0">
-        <div class="flex gap-2 items-end">
-          <textarea
-            bind:value={input}
-            on:keydown={onKey}
-            rows="1"
-            placeholder="Ask about skills, experience, projects…"
-            disabled={streaming}
-            class="flex-1 resize-none rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 bg-white/5 border border-white/10 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
-            style="max-height: 96px;"
-          ></textarea>
-          <button
-            on:click={send}
-            disabled={streaming || !input.trim()}
-            class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all duration-200 disabled:opacity-30"
-            style="background: linear-gradient(135deg, #a78bfa, #38bdf8);"
-            aria-label="Send"
-          >
-            <span class="text-white text-sm font-bold">↑</span>
-          </button>
-        </div>
-        <p class="text-[10px] text-slate-700 mt-2 text-center">Powered by Gemini · Answers based on Venkataraman's CV</p>
+      <!-- Composer -->
+      <div class="composer">
+        <label class="sr" for="chat-input">Your question</label>
+        <textarea
+          bind:this={inputEl}
+          id="chat-input"
+          bind:value={input}
+          on:keydown={onKey}
+          rows="1"
+          placeholder="Type a query, press Enter"
+          disabled={streaming}
+          class="composer-input"
+        ></textarea>
+        <button
+          on:click={() => send()}
+          disabled={streaming || !input.trim()}
+          class="composer-send"
+          aria-label="Send query"
+          title="Send"
+        >
+          <Icon name="send" size={16} />
+        </button>
       </div>
-    </div>
+
+      <p class="t-micro foot-note">Answers derive from the on-file CV. Verify anything load-bearing.</p>
+    </aside>
   {/if}
 {/if}
+
+<style>
+  .sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ─── Launcher ─────────────────────────────────────────────────────────── */
+  .launcher {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-overlay);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--ink);
+    color: var(--paper);
+    border: 0;
+    border-top: 3px solid var(--hazard);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    will-change: transform;
+    transition: background-color 200ms var(--ease-out);
+  }
+  .launcher:hover { background: var(--hazard); }
+  .launcher-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--paper);
+    opacity: 0.5;
+  }
+  .launcher-dot-live { opacity: 1; animation: blink 1.1s step-end infinite; }
+
+
+  /* ─── Panel ────────────────────────────────────────────────────────────── */
+  .panel {
+    position: fixed;
+    right: 0;
+    bottom: 2.75rem;
+    z-index: var(--z-modal);
+    width: 380px;
+    max-width: calc(100vw - 1rem);
+    height: min(540px, calc(100dvh - 5rem));
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    border-bottom: 0;
+    will-change: clip-path;
+  }
+
+  .panel-head { border-bottom: 1px solid var(--rule-strong); flex-shrink: 0; }
+  .panel-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6875rem 0.875rem;
+  }
+  .panel-title { color: var(--ink); font-weight: 600; }
+  .panel-stat { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .dot { width: 6px; height: 6px; background: var(--ink-4); }
+  .dot-live { background: var(--hazard); animation: blink 1.1s step-end infinite; }
+  .dot-bad { background: var(--hazard); }
+  .panel-stripe { height: 6px; opacity: 0.16; }
+
+  /* ─── Transcript ───────────────────────────────────────────────────────── */
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+  }
+
+  .msg {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .msg-who { color: var(--ink-4); padding-top: 1px; }
+  .msg-user { background: var(--paper-sunk); }
+  .msg-user .msg-who { color: var(--hazard); }
+
+  .msg-body {
+    font-family: var(--font-mono);
+    font-size: 0.78125rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg-user .msg-body { color: var(--ink); }
+
+  /* Waiting indicator: three sweeping bars, not bouncing dots */
+  .wait { display: inline-flex; gap: 3px; height: 0.9rem; align-items: center; }
+  .wait-bar {
+    width: 3px;
+    height: 100%;
+    background: var(--ink-4);
+    animation: wait 0.9s var(--ease-out) infinite;
+  }
+  .wait-bar:nth-child(2) { animation-delay: 0.12s; }
+  .wait-bar:nth-child(3) { animation-delay: 0.24s; }
+  @keyframes wait {
+    0%, 100% { transform: scaleY(0.35); }
+    50%      { transform: scaleY(1); }
+  }
+
+  /* ─── Suggested prompts ────────────────────────────────────────────────── */
+  .prompts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+    padding: 0.875rem;
+  }
+  .prompts-label { color: var(--ink-4); }
+  .prompt {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-2);
+    font-family: var(--font-mono);
+    font-size: 0.71875rem;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out),
+      border-color 180ms var(--ease-out);
+  }
+  .prompt:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  /* ─── Composer ─────────────────────────────────────────────────────────── */
+  .composer {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid var(--rule-strong);
+    flex-shrink: 0;
+  }
+  .composer-input {
+    flex: 1;
+    resize: none;
+    max-height: 96px;
+    padding: 0.6875rem 0.75rem;
+    background: var(--paper);
+    border: 0;
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.78125rem;
+    line-height: 1.5;
+  }
+  .composer-input:focus {
+    outline: none;
+    background: var(--paper-sunk);
+    box-shadow: inset 0 -2px 0 0 var(--hazard);
+  }
+  .composer-input:disabled { opacity: 0.5; }
+
+  .composer-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    flex-shrink: 0;
+    background: var(--ink);
+    color: var(--paper);
+    border: 0;
+    border-left: 1px solid var(--rule-strong);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 180ms var(--ease-out);
+  }
+  .composer-send:hover:not(:disabled) { background: var(--hazard); }
+  .composer-send:disabled { opacity: 0.3; cursor: default; }
+
+  .foot-note {
+    margin: 0;
+    padding: 0.5rem 0.875rem 0.625rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-4);
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    text-transform: none;
+    flex-shrink: 0;
+    background: var(--paper);
+  }
+</style>

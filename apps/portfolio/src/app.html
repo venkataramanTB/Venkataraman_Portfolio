@@ -2,15 +2,49 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#0a0a0a" />
+
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/logo.png" />
+		<meta name="theme-color" content="#f4f4f0" />
+
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+			rel="stylesheet"
+		/>
+
+		<!--
+			Substrate bootstrap. Runs synchronously before first paint so a pinned
+			dark theme never flashes the paper substrate first. Kept deliberately
+			tiny and dependency-free; the real logic lives in $lib/theme.js.
+		-->
+		<script>
+			(function () {
+				try {
+					var m = localStorage.getItem('vtb-theme');
+					if (m === 'light' || m === 'dark') {
+						document.documentElement.setAttribute('data-theme', m);
+					}
+					var dark =
+						m === 'dark' ||
+						(m !== 'light' &&
+							window.matchMedia('(prefers-color-scheme: dark)').matches);
+					if (dark) {
+						var t = document.querySelector('meta[name="theme-color"]');
+						if (t) t.setAttribute('content', '#0a0a0a');
+					}
+				} catch (e) {
+					/* blocked storage: fall back to the system preference in CSS */
+				}
+			})();
+		</script>
+
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<a href="#main" class="skip-link">Skip to content</a>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
