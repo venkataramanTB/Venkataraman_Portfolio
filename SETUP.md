@@ -97,4 +97,4 @@ All content is dynamic. To add a new certificate after getting certified:
 ---
 
 ## LinkedIn
-Profile: https://www.linkedin.com/in/venkataraman-tb-4859771ab/
+Profile: https://www.linkedin.com/in/venkataramantb/

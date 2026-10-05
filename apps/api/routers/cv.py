@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 import json
 import asyncio
-import httpx
 
 from database import get_db
 from auth import get_current_admin
@@ -566,74 +565,17 @@ async def sync_linkedin(
         db.add(SocialLink(platform="LinkedIn", url=url, icon="linkedin", display_order=0))
     db.commit()
 
-    if not settings.PROXYCURL_API_KEY:
-        return {
-            "status": "partial",
-            "message": "LinkedIn URL saved as social link. Set PROXYCURL_API_KEY on Render to enable full profile sync.",
-            "proxycurl_required": True,
-        }
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.get(
-            "https://nubela.co/proxycurl/api/v2/linkedin",
-            params={
-                "linkedin_profile_url": url,
-                "skills": "include",
-                "education": "include",
-                "experiences": "include",
-                "certifications": "include",
-            },
-            headers={"Authorization": f"Bearer {settings.PROXYCURL_API_KEY}"},
-        )
-    if resp.status_code != 200:
-        raise HTTPException(502, f"Proxycurl error {resp.status_code}: {resp.text[:300]}")
-
-    li = resp.json()
-
-    def _date(obj, field="starts_at"):
-        d = (obj or {}).get(field) or {}
-        m, y = d.get("month", ""), d.get("year", "")
-        return f"{m}/{y}" if (y and m) else (str(y) if y else None)
-
-    data = {
-        "profile": {
-            "name": f"{li.get('first_name', '')} {li.get('last_name', '')}".strip() or None,
-            "tagline": li.get("headline"),
-            "bio": li.get("summary"),
-            "location": li.get("city") or li.get("country_full_name"),
-        },
-        "skills": [{"name": s, "category": "General", "proficiency": 80} for s in (li.get("skills") or [])[:30]],
-        "experiences": [
-            {
-                "company": e.get("company"), "role": e.get("title"),
-                "description": e.get("description"),
-                "start_date": _date(e, "starts_at"), "end_date": _date(e, "ends_at"),
-                "is_current": e.get("ends_at") is None, "technologies": [],
-            }
-            for e in (li.get("experiences") or [])
-        ],
-        "education": [
-            {
-                "institution": e.get("school"), "degree": e.get("degree_name"),
-                "field": e.get("field_of_study"),
-                "start_date": str((e.get("starts_at") or {}).get("year", "")) or None,
-                "end_date": str((e.get("ends_at") or {}).get("year", "")) or None,
-            }
-            for e in (li.get("education") or [])
-        ],
-        "certificates": [
-            {
-                "title": c.get("name"), "issuer": c.get("authority"),
-                "issued_date": str((c.get("starts_at") or {}).get("year", "")) or None,
-                "category": "Certification",
-            }
-            for c in (li.get("certifications") or [])
-        ],
-    }
-
-    result = populate_db(db, data)
-    return {
-        "status": "success",
-        "message": f"Synced from LinkedIn: {result.skills_created} skills, {result.experiences_created} experiences",
-        "result": result.model_dump(),
-    }
+    # Proxycurl, the provider this endpoint was built against, shut down on
+    # 2025-07-04 after LinkedIn sued it over scraping; nubela.co no longer
+    # serves this API at any key. Fail loudly instead of firing a request that
+    # cannot succeed, and point at the path that does work.
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "Automated LinkedIn sync is no longer available: the Proxycurl API this "
+            "integration depended on shut down on 2025-07-04. The LinkedIn URL has "
+            "been saved as a social link. To import profile data, open your LinkedIn "
+            "profile, choose More > Save to PDF, and upload the file via "
+            "POST /admin/cv/upload - that parses every section into the database."
+        ),
+    )
