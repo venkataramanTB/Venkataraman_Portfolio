@@ -23,3 +23,8 @@ Thumbs.db
 # Local UI-audit artifacts
 audit/
 .playwright-mcp/
+
+# Raw LinkedIn data exports: they carry home address, phone numbers, ad
+# targeting and job-application history. Only the trimmed, public CSVs in
+# apps/api/data/linkedin/ are committed.
+*LinkedInDataExport*.zip

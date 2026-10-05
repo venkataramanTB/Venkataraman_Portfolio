@@ -1,34 +1,47 @@
 """
-Seed the database with real profile data.
+Seed the database from the LinkedIn data export.
 
     python seed.py              # only fills tables that are empty
     python seed.py --replace    # wipes content tables first, then re-seeds
 
 Use --replace to overwrite data that is already in the database. The plain
 mode skips any table that already has rows, so it cannot fix stale content.
+SEED_MODE=replace in the environment does the same thing, for hosts that run
+this as a pre-deploy command and cannot pass arguments.
 
 PROVENANCE
 ----------
-Everything here was read from the live LinkedIn profile at
-https://www.linkedin.com/in/venkataramantb/ on 2026-10-05, except:
+Profile, positions, education, skills and certifications are read at run time
+from the official LinkedIn "Basic Data Export" of 2026-10-05, trimmed to the
+public sections and committed under data/linkedin/. See linkedin_export.py for
+what the export contains and what was dropped from it.
+
+Not from the export:
 
   * projects       - taken from the public GitHub API (github.com/venkataramanTB).
                      The LinkedIn "Projects" section is empty.
+  * social links   - the profile URLs themselves.
+  * achievements   - LinkedIn's "Honors & awards" section is empty; the single
+                     entry is the promotion the profile states.
+  * skill category / colour / featured
+                   - LinkedIn exports a flat list of skill names only. The
+                     grouping lives in linkedin_export.SKILL_MAP.
   * skill.proficiency
                    - LinkedIn exposes no proficiency value. Every skill is set
                      to a flat 80. Tune these by hand; they are not measurements.
-  * profile.bio    - the profile has no "About" section. The text below is
-                     assembled only from facts stated elsewhere on the profile.
 
-Fields LinkedIn had no data for are left as None rather than invented:
-experience descriptions, phone, avatar_url, resume_url, project thumbnails.
+Stats are counted from the export rather than typed in, so they cannot drift.
+Fields the export leaves blank stay None rather than being invented: experience
+descriptions, phone, avatar_url, resume_url, project thumbnails.
 """
+import os
 import sys
 
 from database import SessionLocal, engine, Base
+import linkedin_export as li
 import models
 
-REPLACE = "--replace" in sys.argv
+REPLACE = "--replace" in sys.argv or os.getenv("SEED_MODE", "").lower() == "replace"
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -64,20 +77,17 @@ def seed(table, rows, build):
 
 
 # -- Profile -------------------------------------------------------------------
+# Headline -> tagline, About -> bio, Geo Location -> location, and the primary
+# confirmed address from Email Addresses.csv.
 if not db.query(models.Profile).first():
+    p = li.profile()
     db.add(models.Profile(
-        name="Venkataraman TB",
-        tagline="Associate Software Engineer @ Mythics | Application Development, Applied Machine Learning",
-        bio=(
-            "Associate Software Engineer at Mythics, working across generative AI, "
-            "large language models, RAG, automation and enterprise technology. "
-            "Computer Science engineering graduate from Chennai Institute of Technology, "
-            "with Oracle Cloud Infrastructure professional certifications in Data Science, "
-            "Generative AI and Database architecture."
-        ),
-        email="venkataraman.tb@mythics.com",
+        name=p["name"],
+        tagline=p["tagline"],
+        bio=p["bio"],
+        email=p["email"],
+        location=p["location"],
         phone=None,
-        location="Bengaluru, Karnataka, India",
         avatar_url=None,
         resume_url=None,
         open_to_work=True,
@@ -90,153 +100,54 @@ else:
 seed(models.SocialLink, [
     ("LinkedIn", "https://www.linkedin.com/in/venkataramantb/", "linkedin"),
     ("GitHub", "https://github.com/venkataramanTB", "github"),
-    ("Portfolio", "https://venkataraman-portfolio.netlify.app/", "site"),
 ], lambda r, o: models.SocialLink(platform=r[0], url=r[1], icon=r[2], display_order=o))
 
-# -- Stats ---------------------------------------------------------------------
-# Counts are real and checkable: 7 certifications listed on LinkedIn, 14 non-fork
-# public repos, 9 listed positions, first internship Jan 2022.
-seed(models.Stat, [
-    ("Certifications", "7", "", "verify"),
-    ("Public Projects", "14", "", "projects"),
-    ("Roles & Internships", "9", "", "work"),
-    ("Years in Tech", "4", "+", "stats"),
-], lambda r, o: models.Stat(label=r[0], value=r[1], suffix=r[2], icon=r[3], display_order=o))
-
 # -- Skills --------------------------------------------------------------------
-# All 26 skills listed on the profile, across its four category tabs.
-# Proficiency is a uniform placeholder - see PROVENANCE above.
-seed(models.Skill, [
-    # AI / ML
-    ("Applied Machine Learning", "AI / ML", "#a78bfa", True),
-    ("Generative AI", "AI / ML", "#a78bfa", True),
-    ("Large Language Models (LLM)", "AI / ML", "#a78bfa", True),
-    ("Retrieval-Augmented Generation (RAG)", "AI / ML", "#a78bfa", True),
-    ("Large Language Model Operations (LLMOps)", "AI / ML", "#a78bfa", False),
-    ("Data Science", "AI / ML", "#a78bfa", True),
-    ("Model Optimization", "AI / ML", "#a78bfa", False),
-    ("AI Chatbots", "AI / ML", "#a78bfa", False),
-    ("Chatbots", "AI / ML", "#a78bfa", False),
-    ("Core ML", "AI / ML", "#a78bfa", False),
-    # Cloud
-    ("Cloud Computing", "Cloud", "#34d399", True),
-    ("Amazon Web Services (AWS)", "Cloud", "#34d399", True),
-    ("Oracle Database", "Cloud", "#34d399", True),
-    ("Disaster Recovery", "Cloud", "#34d399", False),
-    ("Data Migration", "Cloud", "#34d399", False),
-    ("Resource Management", "Cloud", "#34d399", False),
-    # Engineering
-    ("Application Development", "Engineering", "#38bdf8", True),
-    ("Python (Programming Language)", "Engineering", "#38bdf8", True),
-    ("Flask", "Engineering", "#38bdf8", False),
-    ("Redux.js", "Engineering", "#38bdf8", False),
-    ("Pandas (Software)", "Engineering", "#38bdf8", False),
-    ("Seaborn", "Engineering", "#38bdf8", False),
-    ("Anaconda", "Engineering", "#38bdf8", False),
-    ("Tkinter", "Engineering", "#38bdf8", False),
-    # Listed on the profile as-is. "LLVM" is very likely a mis-pick for "LLM"
-    # and "Online Music" comes from the music side of the profile - both are
-    # kept because they are on the profile, but consider removing them there.
-    ("LLVM", "Other", "#94a3b8", False),
-    ("Online Music", "Other", "#94a3b8", False),
-], lambda r, o: models.Skill(
-    name=r[0], category=r[1], proficiency=80, color=r[2],
-    is_featured=r[3], display_order=o,
+skill_rows, unmapped, missing = li.skills()
+if unmapped:
+    print(f"  note: {len(unmapped)} exported skills not shown "
+          f"(course objectives, duplicates, unrelated) - see SKILL_MAP")
+if missing:
+    print(f"  warning: {len(missing)} mapped skills are no longer in the export: "
+          f"{', '.join(missing)}")
+seed(models.Skill, skill_rows, lambda r, o: models.Skill(
+    name=r["name"], category=r["category"], color=r["color"],
+    is_featured=r["is_featured"], proficiency=80, display_order=o,
 ))
 
 # -- Experience ----------------------------------------------------------------
-# Nine positions, newest first. LinkedIn carries no description text for these,
-# so description stays None. `technologies` only lists skills LinkedIn itself
-# associates with that role.
-seed(models.Experience, [
-    dict(company="Mythics", role="Associate Software Engineer",
-         start_date="Sep 2026", end_date=None, is_current=True,
-         location="Bengaluru, Karnataka, India", technologies=[]),
-    dict(company="Mythics", role="Practice AI Engineer",
-         start_date="May 2025", end_date="Sep 2026", is_current=False,
-         location="Bangalore Urban, Karnataka, India", technologies=[]),
-    dict(company="Smart ERP Solutions", role="Generative AI Engineer",
-         start_date="May 2025", end_date="May 2025", is_current=False,
-         location="Bangalore Urban, Karnataka, India",
-         technologies=["Python", "Pandas", "Flask", "Anaconda", "Seaborn",
-                       "Tkinter", "Generative AI",
-                       "Retrieval-Augmented Generation (RAG)", "LLMOps"]),
-    dict(company="ReferralYogi", role="Software Developer",
-         start_date="Jul 2024", end_date="May 2025", is_current=False,
-         location="India", technologies=["Redux.js"]),
-    dict(company="Adobe", role="Gen AI Engineer Intern",
-         start_date="Sep 2023", end_date="May 2024", is_current=False,
-         location="Hyderabad, Telangana, India", technologies=[]),
-    dict(company="Lumos Magazine", role="Graphic Designer",
-         start_date="Feb 2023", end_date="Nov 2023", is_current=False,
-         location="Remote", technologies=[]),
-    dict(company="Larsen & Toubro", role="Full-stack Developer Intern",
-         start_date="May 2023", end_date="Aug 2023", is_current=False,
-         location="Chennai, Tamil Nadu, India", technologies=["Generative AI"]),
-    dict(company="Lumos Chennai Institute of Technology", role="Video Editor",
-         start_date="Feb 2023", end_date="Feb 2023", is_current=False,
-         location="Chennai, Tamil Nadu, India", technologies=[]),
-    dict(company="AiVirex Innovations", role="Graphic Designer",
-         start_date="Jan 2022", end_date="Sep 2022", is_current=False,
-         location="Remote", technologies=[]),
-], lambda r, o: models.Experience(description=None, display_order=o, **r))
+# All positions from the export, newest first. The export carries description
+# text for one role only; the rest stay None. `technologies` is not in the
+# export at all, so it is left empty and can be filled from the admin UI.
+seed(models.Experience, li.positions(), lambda r, o: models.Experience(
+    company=r["company"], role=r["role"], description=r["description"],
+    start_date=r["start_date"], end_date=r["end_date"], is_current=r["is_current"],
+    location=r["location"], technologies=[], display_order=o,
+))
 
 # -- Education -----------------------------------------------------------------
-seed(models.Education, [
-    dict(institution="Chennai Institute of Technology",
-         degree="Bachelor of Engineering - BE",
-         field="Computer Science",
-         start_date="Sep 2021", end_date="Apr 2025", gpa=None,
-         description="Activities and societies: Pianist, Music Producer, "
-                     "Basketball Player, Badminton Player"),
-], lambda r, o: models.Education(display_order=o, **r))
+# The export has no field of study or GPA column; the field is read from the
+# profile's own degree description.
+seed(models.Education, li.education(), lambda r, o: models.Education(
+    institution=r["institution"], degree=r["degree"],
+    field="Computer Science" if "Chennai Institute" in r["institution"] else None,
+    start_date=r["start_date"], end_date=r["end_date"], gpa=None,
+    description=r["description"], display_order=o,
+))
 
 # -- Certificates --------------------------------------------------------------
-# All seven licences and certifications, newest first, with the real credential
-# IDs and verification URLs behind each "Show credential" link.
-seed(models.Certificate, [
-    dict(title="Certificate of Completion: AI Fluency Framework & Foundations",
-         issuer="Anthropic", issued_date="Mar 2026",
-         credential_id="u5mk454ux44v",
-         credential_url="https://verify.skilljar.com/c/u5mk454ux44v",
-         category="AI / ML"),
-    dict(title="Manage Kubernetes in Google Cloud Skill Badge",
-         issuer="Google", issued_date="Nov 2025",
-         credential_id=None,
-         credential_url="https://www.credly.com/badges/15e06985-6b34-4bd2-b0b2-04d3302c1dad/linked_in_profile",
-         category="Cloud"),
-    dict(title="Oracle Cloud Infrastructure 2025 Certified Data Science Professional",
-         issuer="Oracle", issued_date="Oct 2025",
-         credential_id="28F6EE8911F712C99E217253528E684A661A99ABE68B5E023DF13A62B44A27C6",
-         credential_url="https://catalog-education.oracle.com/pls/certview/sharebadge"
-                        "?id=28F6EE8911F712C99E217253528E684A661A99ABE68B5E023DF13A62B44A27C6",
-         category="AI / ML"),
-    dict(title="Oracle Cloud Infrastructure 2025 Certified Generative AI Professional",
-         issuer="Oracle", issued_date="Oct 2025",
-         credential_id="743817E6C2437B24585899C88E2B9AD723ADBB7CEC37C1CCDDFDE0E982E30B02",
-         credential_url="https://catalog-education.oracle.com/pls/certview/sharebadge"
-                        "?id=743817E6C2437B24585899C88E2B9AD723ADBB7CEC37C1CCDDFDE0E982E30B02",
-         category="AI / ML"),
-    dict(title="Oracle Database@AWS Certified Architect Professional",
-         issuer="Oracle", issued_date="Oct 2025",
-         credential_id="8A76210A256124F3EE31D9C23F4D7D384E713007550F82388BFD8A84B769C31D",
-         credential_url="https://catalog-education.oracle.com/pls/certview/sharebadge"
-                        "?id=8A76210A256124F3EE31D9C23F4D7D384E713007550F82388BFD8A84B769C31D",
-         category="Cloud"),
-    dict(title="PCAP - Programming Essentials in Python",
-         issuer="Cisco", issued_date="Jun 2024",
-         credential_id=None, credential_url=None,
-         category="Engineering"),
-    dict(title="Cybersecurity Essentials",
-         issuer="Cisco", issued_date="Feb 2023",
-         credential_id=None,
-         credential_url="https://www.credly.com/badges/6a02c3b6-6d11-4365-9cec-9196c55ad759/linked_in_profile",
-         category="Security"),
-], lambda r, o: models.Certificate(display_order=o, **r))
+# All licences and certifications, newest first, with the real credential IDs
+# and verification URLs from the export.
+seed(models.Certificate, li.certifications(), lambda r, o: models.Certificate(
+    title=r["title"], issuer=r["issuer"], issued_date=r["issued_date"],
+    expiry_date=r["expiry_date"], credential_id=r["credential_id"],
+    credential_url=r["credential_url"], category=r["category"],
+    image_url=None, display_order=o,
+))
 
 # -- Achievements --------------------------------------------------------------
 # The LinkedIn "Honors & awards" section is empty. This single entry is the
-# promotion announced on the profile itself.
+# promotion the profile itself states.
 seed(models.Achievement, [
     dict(title="Promoted to Associate Software Engineer at Mythics",
          description="Promoted after shipping work across generative AI, LLMs, "
@@ -248,7 +159,7 @@ seed(models.Achievement, [
 # From the public GitHub account; forks and placeholder repos excluded.
 # `technologies` is the repo's real language breakdown. Descriptions are only
 # present where the repo itself sets one.
-seed(models.Project, [
+PROJECTS = [
     dict(title="Learning Management System", description=None,
          technologies=["JavaScript", "CSS"], category="Full Stack",
          github_url="https://github.com/venkataramanTB/Learning-Management-System",
@@ -306,9 +217,25 @@ seed(models.Project, [
          technologies=["Svelte", "SvelteKit", "FastAPI", "Python", "PostgreSQL"],
          category="Full Stack",
          github_url="https://github.com/venkataramanTB/Venkataraman_Portfolio",
-         demo_url="https://venkataraman-portfolio.netlify.app/", is_featured=False),
-], lambda r, o: models.Project(long_description=None, thumbnail_url=None,
-                               appstore_url=None, display_order=o, **r))
+         demo_url="https://venkataraman-tb-portfolio.up.railway.app/",
+         is_featured=False),
+]
+
+seed(models.Project, PROJECTS, lambda r, o: models.Project(
+    long_description=None, thumbnail_url=None, appstore_url=None,
+    display_order=o, **r))
+
+# -- Stats ---------------------------------------------------------------------
+# Counted from the export and the project list, so these stay true when the
+# export is refreshed instead of drifting from hand-typed numbers.
+counts = li.counts()
+seed(models.Stat, [
+    ("Certifications", str(counts["certifications"]), "", "verify"),
+    ("Roles & Internships", str(counts["roles"]), "", "work"),
+    ("Public Projects", str(len(PROJECTS)), "", "projects"),
+    ("Years in Tech", str(counts["years_in_tech"]), "+", "stats"),
+], lambda r, o: models.Stat(label=r[0], value=r[1], suffix=r[2], icon=r[3], display_order=o))
+
 
 db.commit()
 db.close()
