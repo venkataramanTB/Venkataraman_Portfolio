@@ -72,6 +72,9 @@
 		try {
 			await navigator.clipboard.writeText(email);
 			copied = true;
+			// The companion listens for this and reacts. A custom event keeps
+			// the two components decoupled — Contact knows nothing about him.
+			window.dispatchEvent(new CustomEvent('vtb:copied'));
 			clearTimeout(copyTimer);
 			// Completion feedback, then back to the resting label.
 			copyTimer = setTimeout(() => (copied = false), 1800);

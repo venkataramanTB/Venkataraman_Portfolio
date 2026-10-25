@@ -29,3 +29,8 @@ audit/
 # apps/api/data/linkedin/ are committed.
 *LinkedInDataExport*.zip
 .playwright-mcp/
+
+# Original character photographs. The cut-outs in
+# apps/portfolio/static/character/ are what the site ships; these 2MB
+# originals are kept locally for re-cutting, not committed.
+assets-source/

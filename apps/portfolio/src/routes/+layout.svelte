@@ -22,6 +22,7 @@
 	import { initTheme } from '$lib/theme.js';
 
 	let ChatWidget = null;
+	let Companion = null;
 	let stopTheme;
 
 	onMount(async () => {
@@ -29,10 +30,14 @@
 		// before paint, then tracks OS and cross-tab changes.
 		stopTheme = initTheme();
 
-		// The assistant is a secondary affordance — it must not sit on the
-		// critical path for first paint.
-		const mod = await import('$lib/components/ChatWidget.svelte');
-		ChatWidget = mod.default;
+		// Both the assistant and the guide are secondary affordances — neither
+		// belongs on the critical path for first paint.
+		const [chat, companion] = await Promise.all([
+			import('$lib/components/ChatWidget.svelte'),
+			import('$lib/character/Companion.svelte')
+		]);
+		ChatWidget = chat.default;
+		Companion = companion.default;
 	});
 
 	onDestroy(() => stopTheme?.());
@@ -42,4 +47,8 @@
 
 {#if ChatWidget}
 	<svelte:component this={ChatWidget} />
+{/if}
+
+{#if Companion}
+	<svelte:component this={Companion} />
 {/if}
