@@ -1,0 +1,16 @@
+{
+  "point": {
+    "w": 47,
+    "h": 120,
+    "waist": 61,
+    "topH": 62,
+    "bottomH": 58
+  },
+  "dance": {
+    "w": 76,
+    "h": 120,
+    "waist": 77,
+    "topH": 78,
+    "bottomH": 42
+  }
+}

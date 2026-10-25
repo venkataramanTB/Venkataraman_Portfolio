@@ -176,5 +176,12 @@ export const TRICKS = [
 	{ id: 'sneeze', label: 'Sneeze', pose: 'idle', face: 'surprised', ms: 2000, line: 'Achoo! Sorry.' },
 	{ id: 'sulk', label: 'Sulk', pose: 'sulk', face: 'sulk', ms: 3000, line: "Hmph. Not talking to you." },
 	{ id: 'sleep', label: 'Nap', pose: 'sleep', face: 'sleep', ms: 3400, line: 'Just five minutes.' },
-	{ id: 'walk', label: 'Go for a walk', pose: 'walk', face: 'happy', ms: 2800, line: 'Stretching the legs.' }
+
+	// Everything below needs the hinge at his waist, so none of it was
+	// possible while he was a photograph.
+	{ id: 'walk', label: 'Walk', pose: 'walk', face: 'happy', ms: 3000, line: 'Stretching the legs.' },
+	{ id: 'run', label: 'Run', pose: 'run', face: 'surprised', ms: 2600, line: "Can't stop, won't stop." },
+	{ id: 'jump', label: 'Jump', pose: 'jump', face: 'grin', ms: 2800, line: 'Hup!' },
+	{ id: 'kick', label: 'High kick', pose: 'kick', face: 'grin', ms: 2400, line: 'Hiyah.' },
+	{ id: 'moonwalk', label: 'Moonwalk', pose: 'moonwalk', face: 'grin', ms: 3600, line: 'Watch the feet.' }
 ];

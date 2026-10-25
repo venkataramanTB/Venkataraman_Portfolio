@@ -20,18 +20,33 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { Spring, drive, project, SPRINGS, springConfig, prefersReducedMotion } from '$lib/motion/spring.js';
 	import { draggable } from '$lib/motion/gestures.js';
-	import Figure from './Figure.svelte';
+	import Sprite from './Sprite.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { GREETING, SECTIONS, REACTIONS, TRICKS, pick } from './script.js';
 
 	const STORE_KEY = 'vtb-companion';
 
-	// The figure is a fixed box; the photographs are contained inside it,
-	// bottom-aligned, so the two poses stand at the same height despite being
-	// different shapes.
-	const W = 124;
-	const H = 190;
+	// He is the main character, so the base size is the HERO size and every
+	// other state is a scale-down of it. Sizing the other way round — a small
+	// widget scaled up — gives a soft, obviously-enlarged figure.
+	//
+	// W is the widest pose (the dance lean) at this height; the pointing pose
+	// is narrower and simply sits centred in the same box.
+	const H = 420;
+	const W = 272;
 	const MARGIN = 20;
+
+	/** How large he is when guiding, relative to his hero size. */
+	const GUIDE_SCALE = 0.44;
+
+	/**
+	 * Where he is in the story:
+	 *   hero  — centre stage in the hero, at full size. He IS the hero image.
+	 *   guide — shrunk into the side lane, still present, still narrating.
+	 *   free  — the visitor threw him somewhere; he stays put until the
+	 *           story moves on.
+	 */
+	let mode = 'hero';
 
 	let mounted = false;
 	let hidden = false; // sent to the corner
@@ -49,7 +64,7 @@
 	let invisible = false; // the vanish trick
 
 	/** Poses that call for the dance photograph rather than the pointing one. */
-	const DANCE_POSES = new Set(['dance', 'punch', 'selfie', 'panic', 'tickle', 'fly']);
+	const DANCE_POSES = new Set(['dance', 'moonwalk', 'punch', 'kick', 'selfie', 'panic', 'tickle', 'fly']);
 	$: shot = DANCE_POSES.has(pose) ? 'dance' : 'point';
 
 	/* ─── Speech ────────────────────────────────────────────────────────── */
@@ -63,6 +78,9 @@
 	let el;
 	let x = new Spring(0, springConfig(SPRINGS.move.bounce, SPRINGS.move.response));
 	let y = new Spring(0, springConfig(SPRINGS.move.bounce, SPRINGS.move.response));
+	// Scale is its own spring so he can shrink and travel at the same time
+	// without the two fighting over one transform.
+	let sc = new Spring(1, springConfig(SPRINGS.move.bounce, 0.55));
 	let held = false;
 	let grabDX = 0;
 	let grabDY = 0;
@@ -70,19 +88,45 @@
 	const render = () => {
 		if (!el) return;
 		el.style.transform = `translate3d(${x.value}px, ${y.value}px, 0)`;
+		// Only the figure scales. The bubble and controls keep their own size
+		// so the text stays readable whatever size he is.
+		el.style.setProperty('--scale', String(sc.value));
 	};
 
-	function bounds() {
-		// Measured, not assumed. The box is the figure plus its controls row,
-		// and it changes at the narrow breakpoint — hard-coding the height
-		// let the controls hang 8px off the bottom of the viewport.
-		const bw = el?.offsetWidth || W;
-		const bh = el?.offsetHeight || H;
+	/**
+	 * Where he VISUALLY is, which is not where his box is.
+	 *
+	 * The element keeps its full 420px layout height at every scale; the
+	 * browser shrinks it about `transform-origin: 50% 100%`. So his feet stay
+	 * at the bottom of the unscaled box and his visible width contracts
+	 * toward its centre. Positioning as though the box itself shrank put his
+	 * feet 240px below the viewport at guide size.
+	 */
+	function visual(px = x.value, py = y.value, s = sc.value) {
 		return {
-			minX: MARGIN,
-			maxX: Math.max(MARGIN, window.innerWidth - bw - MARGIN),
-			minY: MARGIN,
-			maxY: Math.max(MARGIN, window.innerHeight - bh - MARGIN)
+			left: px + W / 2 - (W * s) / 2,
+			right: px + W / 2 + (W * s) / 2,
+			top: py + H - H * s,
+			bottom: py + H,
+			w: W * s,
+			h: H * s
+		};
+	}
+
+	/** Box position that puts his visible feet and left edge where we want. */
+	function placeAt(visLeft, visBottom, s) {
+		return { x: visLeft - W / 2 + (W * s) / 2, y: visBottom - H };
+	}
+
+	function bounds() {
+		// Expressed in box coordinates but derived from the VISIBLE figure,
+		// so the margins mean what they say at any scale.
+		const s = sc.value;
+		return {
+			minX: MARGIN - W / 2 + (W * s) / 2,
+			maxX: window.innerWidth - MARGIN - W / 2 - (W * s) / 2,
+			minY: MARGIN - H + H * s,
+			maxY: window.innerHeight - MARGIN - H
 		};
 	}
 
@@ -94,10 +138,45 @@
 		};
 	}
 
-	/** Resting place: bottom-left, clear of the chat launcher. */
-	function home() {
-		const b = bounds();
-		return { x: b.minX, y: b.maxY };
+	/**
+	 * Centre stage: the slot the Hero reserves for him. He is not placed
+	 * near the hero, he IS the hero image — the slot is a real column in the
+	 * hero's grid, so the headline is laid out around him rather than him
+	 * being pasted on top.
+	 */
+	function heroTarget() {
+		const slot = document.getElementById('character-stage');
+		if (!slot) return null;
+		const r = slot.getBoundingClientRect();
+		if (r.height < 40) return null;
+
+		const scale = Math.min(r.height / H, 1.1);
+		// Centred in the slot, standing on its floor.
+		const p = placeAt(r.left + (r.width - W * scale) / 2, r.bottom, scale);
+		return { scale, x: p.x, y: p.y };
+	}
+
+	/** The side lane he occupies while guiding the rest of the page. */
+	function guideTarget() {
+		const p = placeAt(MARGIN, window.innerHeight - MARGIN, GUIDE_SCALE);
+		return { scale: GUIDE_SCALE, x: p.x, y: p.y };
+	}
+
+	/** Move him to wherever the current mode says he belongs. */
+	function restage({ instant = false } = {}) {
+		const t = mode === 'hero' ? heroTarget() ?? guideTarget() : guideTarget();
+
+		if (instant) {
+			x.set(t.x);
+			y.set(t.y);
+			sc.set(t.scale);
+			render();
+			return;
+		}
+		x.setTarget(t.x);
+		y.setTarget(t.y);
+		sc.setTarget(t.scale);
+		drive([x, y, sc], render);
 	}
 
 	function moveTo(px, py, { velocityX = 0, velocityY = 0, bouncy = false } = {}) {
@@ -110,10 +189,24 @@
 		y.configure(cfg);
 		x.setTarget(t.x, velocityX);
 		y.setTarget(t.y, velocityY);
-		drive([x, y], render, onSettle);
+		drive([x, y, sc], render, onSettle);
 	}
 
 	let pendingLanding = false;
+	let returnTimer;
+
+	/** After being thrown or wandering off, he walks back to his mark. */
+	function scheduleReturn(delay = 4200) {
+		clearTimeout(returnTimer);
+		returnTimer = setTimeout(() => {
+			if (mode !== 'free' || held || busy) return;
+			mode = window.scrollY < window.innerHeight * 0.5 ? 'hero' : 'guide';
+			pose = 'walk';
+			restage();
+			say('Right. Back to work.', { face: 'neutral', pose: 'walk', hold: 1600 });
+			setTimeout(() => (pose = 'idle'), 1600);
+		}, delay);
+	}
 	function onSettle() {
 		if (!pendingLanding) return;
 		pendingLanding = false;
@@ -184,6 +277,9 @@
 
 	function onDragStart() {
 		held = true;
+		// Picked up means he has left his mark; he stays where he's put until
+		// the page moves on and he walks back.
+		mode = 'free';
 		// Captured here, not reactively: Spring.value is a plain class field
 		// that Svelte cannot observe, so computing this outside the gesture
 		// left it stale and the figure jumped on the next grab.
@@ -218,6 +314,7 @@
 			pose = 'fly';
 			pendingLanding = true;
 			moveTo(tx, ty, { velocityX: vx, velocityY: vy, bouncy: true });
+			scheduleReturn();
 			setTimeout(() => {
 				if (pose === 'fly') pose = 'idle';
 			}, 700);
@@ -275,6 +372,7 @@
 				// Reappear somewhere else entirely — that's the joke.
 				const b = bounds();
 				const nx = Math.random() * (b.maxX - b.minX) + b.minX;
+				mode = 'free';
 				x.set(nx);
 				y.set(b.maxY);
 				render();
@@ -291,13 +389,22 @@
 			}, 800);
 		}
 
-		if (trick.id === 'walk') {
+		// Locomotion actually travels. A walk cycle playing on the spot is the
+		// tell that a character is a decoration rather than a thing in the room.
+		if (trick.id === 'walk' || trick.id === 'run' || trick.id === 'moonwalk') {
+			mode = 'free';
 			const b = bounds();
 			const target = x.value < window.innerWidth / 2 ? b.maxX : b.minX;
-			x.configure(springConfig(0, 2.4)); // slow, so the legs keep up
+			// The spring's response is matched to the gait so the feet are not
+			// skating: a run covers the same ground in a third of the time.
+			const response = trick.id === 'run' ? 1.1 : trick.id === 'moonwalk' ? 3.4 : 2.4;
+			x.configure(springConfig(0, response));
 			x.setTarget(target);
-			drive([x, y], render);
-			setTimeout(() => x.configure(springConfig(SPRINGS.move.bounce, SPRINGS.move.response)), trick.ms);
+			drive([x, y, sc], render);
+			setTimeout(() => {
+				x.configure(springConfig(SPRINGS.move.bounce, SPRINGS.move.response));
+				scheduleReturn();
+			}, trick.ms);
 		}
 
 		if (trick.id === 'hiccup' || trick.id === 'sneeze') {
@@ -380,6 +487,31 @@
 			idleSince = now;
 		}
 
+		// The handover: once the hero has largely scrolled away he leaves
+		// centre stage and takes up the guide lane. Hysteresis on the two
+		// thresholds stops him flip-flopping when a scroll stalls mid-handover.
+		if (mode !== 'free') {
+			const slot = document.getElementById('character-stage');
+			if (slot) {
+				const r = slot.getBoundingClientRect();
+				const goneUp = r.bottom < window.innerHeight * 0.42;
+				const backDown = r.bottom > window.innerHeight * 0.62;
+
+				if (mode === 'hero' && goneUp) {
+					mode = 'guide';
+					restage();
+				} else if (mode === 'guide' && backDown) {
+					mode = 'hero';
+					restage();
+				} else if (mode === 'hero') {
+					// While he is still centre stage, track the slot as it
+					// scrolls so he travels with the hero rather than floating
+					// free of it.
+					restage();
+				}
+			}
+		}
+
 		// Reached the end.
 		const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 120;
 		if (atBottom && !sawBottom && !hidden) {
@@ -394,16 +526,19 @@
 		// He leans toward the pointer. Capped low — past about 8 degrees a
 		// photograph stops reading as a lean and starts reading as a tilted
 		// picture.
-		const cx = x.value + W / 2;
-		const dx = e.clientX - cx;
+		const dx = e.clientX - (x.value + W / 2);
 		lean = Math.max(-8, Math.min(8, (dx / (window.innerWidth / 2)) * 8));
 	}
 
 	function onResize() {
-		const t = clamp(x.value, y.value);
-		x.set(t.x);
-		y.set(t.y);
-		render();
+		if (mode === 'free') {
+			const t = clamp(x.value, y.value);
+			x.set(t.x);
+			y.set(t.y);
+			render();
+		} else {
+			restage({ instant: true });
+		}
 
 		const narrow = window.innerWidth < 640;
 		if (narrow !== wasNarrow && mounted && !hidden) {
@@ -444,10 +579,8 @@
 		hidden = false;
 		persist();
 		await tick();
-		const h = home();
-		x.set(h.x);
-		y.set(h.y);
-		render();
+		mode = window.scrollY < window.innerHeight * 0.5 ? 'hero' : 'guide';
+		restage({ instant: true });
 		const r = pick('recalled', REACTIONS.recalled);
 		say(r.text, { face: r.face, pose: 'wave' });
 	}
@@ -485,10 +618,10 @@
 		mounted = true;
 		await tick();
 
-		const h = home();
-		x.set(h.x);
-		y.set(h.y);
-		render();
+		// If the visitor loads part-way down the page he should already be in
+		// the guide lane rather than sliding in from the hero.
+		mode = window.scrollY < window.innerHeight * 0.5 ? 'hero' : 'guide';
+		restage({ instant: true });
 
 		lastScrollY = window.scrollY;
 		lastScrollT = Date.now();
@@ -522,6 +655,7 @@
 		clearTimeout(typeTimer);
 		clearTimeout(bubbleTimer);
 		clearInterval(idleTimer);
+		clearTimeout(returnTimer);
 		io?.disconnect();
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('scroll', onScroll);
@@ -567,7 +701,7 @@
 				on:pointerdown={onPoke}
 				role="presentation"
 			>
-				<Figure {shot} {lean} />
+				<Sprite {shot} {lean} />
 			</div>
 
 			<!-- Controls -->
@@ -618,8 +752,10 @@
 		position: fixed;
 		top: 0;
 		left: 0;
-		z-index: var(--z-overlay);
-		width: 124px;
+		/* Above the content but below modals: he is the main character, not an
+		   interruption. */
+		z-index: var(--z-raised);
+		width: 272px;
 		will-change: transform;
 		/* The figure is grabbable; the space around it is not, or he'd block
 		   clicks on the content behind him. */
@@ -632,7 +768,10 @@
 
 	.grab {
 		pointer-events: auto;
-		height: 190px;
+		height: 420px;
+		/* Scaled from the feet so he stays planted as he grows and shrinks. */
+		transform: scale(var(--scale, 1));
+		transform-origin: 50% 100%;
 		cursor: grab;
 		touch-action: none;
 		-webkit-tap-highlight-color: transparent;
@@ -646,134 +785,32 @@
 	}
 
 	/* ══════════════════════════════════════════════════════════════════════
-	   POSES
-	   With a drawn character these moved individual limbs. A photograph has
-	   no limbs to move, so every pose is whole-body motion: rock, bob, jab,
-	   spin, droop. Read together with the speech bubble, that is enough to
-	   carry a mood — a figure that bounces while saying "watch this" is
-	   legibly pleased with itself without needing a face to prove it.
+	   WHOLE-BODY MOTION
+	   Limb motion belongs to the sprite rig (Sprite.svelte), which hinges his
+	   two halves at the waist. What stays here is motion that moves the whole
+	   figure at once, because only this element knows where he is on screen.
 	   ══════════════════════════════════════════════════════════════════════ */
 
-	.ch-wave .grab {
-		animation: rock 1.6s ease-in-out infinite;
-	}
-	@keyframes rock {
-		0%, 100% { transform: rotate(-3deg); }
-		50%      { transform: rotate(3deg); }
-	}
-
-	.ch-point .grab {
-		animation: assert 1.8s ease-in-out infinite;
-	}
-	@keyframes assert {
-		0%, 100% { transform: translateY(0) scale(1); }
-		50%      { transform: translateY(-4px) scale(1.03); }
-	}
-
-	.ch-dance .grab {
-		animation: dance 0.52s ease-in-out infinite;
-	}
-	@keyframes dance {
-		0%, 100% { transform: translateY(0) rotate(-5deg); }
-		25%      { transform: translateY(-7px) rotate(0deg); }
-		50%      { transform: translateY(0) rotate(5deg); }
-		75%      { transform: translateY(-7px) rotate(0deg); }
-	}
-
-	.ch-punch .grab {
-		animation: jab 0.3s ease-in-out infinite;
-	}
-	@keyframes jab {
-		0%, 100% { transform: translateX(0) scale(1, 1); }
-		40%      { transform: translateX(9px) scale(1.04, 0.96); }
-	}
-
-	.ch-panic .grab {
-		animation: panic 0.11s linear infinite;
-	}
-	@keyframes panic {
-		0%, 100% { transform: translate(-3px, 0) rotate(-2deg); }
-		50%      { transform: translate(3px, -2px) rotate(2deg); }
-	}
-
-	.ch-fly .grab {
-		animation: fly 1.1s ease-in-out infinite;
-	}
-	@keyframes fly {
-		0%, 100% { transform: rotate(-16deg) translateY(0); }
-		50%      { transform: rotate(-12deg) translateY(-9px); }
-	}
-
-	.ch-selfie .grab {
-		animation: selfie 2.2s ease-in-out infinite;
-	}
-	@keyframes selfie {
-		0%, 100% { transform: scale(1) rotate(-4deg); }
-		50%      { transform: scale(1.09) rotate(4deg); }
-	}
-
-	.ch-tickle .grab {
-		animation: wiggle 0.09s linear infinite;
-	}
-	@keyframes wiggle {
-		0%, 100% { transform: translateX(-2.5px) rotate(-1.5deg); }
-		50%      { transform: translateX(2.5px) rotate(1.5deg); }
-	}
-
-	.ch-walk .grab {
-		animation: walk 0.46s ease-in-out infinite;
-	}
-	@keyframes walk {
-		0%, 100% { transform: translateY(0) rotate(-2.5deg); }
-		50%      { transform: translateY(-5px) rotate(2.5deg); }
-	}
-
-	.ch-sleep .grab {
-		animation: breathe 3.4s ease-in-out infinite;
-	}
-	@keyframes breathe {
-		0%, 100% { transform: rotate(7deg) scale(1, 1); }
-		50%      { transform: rotate(7deg) scale(0.99, 1.02); }
-	}
-
-	/* Being carried: he swings from the pointer like something picked up. */
-	.ch-held .grab {
-		animation: dangle 1.2s ease-in-out infinite alternate;
-	}
-	@keyframes dangle {
-		from { transform: rotate(-7deg); }
-		to   { transform: rotate(7deg); }
-	}
-
-	/* Sulking and dizziness are the two moods a still photograph can still
-	   express, because both are achievable with filters and rotation. */
-	.ch-sulk .grab {
-		filter: grayscale(0.75) brightness(0.88);
-		transform: rotate(-4deg) translateY(4px);
-		transition: filter 400ms var(--ease-soft), transform 400ms var(--ease-out);
-	}
-
 	.ch-dizzy .grab {
-		animation: spin 1.1s linear infinite;
+		animation: spin 1.2s linear infinite;
 	}
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to { transform: scale(var(--scale, 1)) rotate(360deg); }
+	}
+
+	.ch-jump .grab,
+	.ch-kick .grab {
+		animation: hop 0.9s ease-in-out infinite;
+	}
+	@keyframes hop {
+		0%, 100% { transform: scale(var(--scale, 1)) translateY(0); }
+		45%      { transform: scale(var(--scale, 1)) translateY(-9%); }
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.grab,
-		.ch-wave .grab,
-		.ch-point .grab,
-		.ch-dance .grab,
-		.ch-punch .grab,
-		.ch-panic .grab,
-		.ch-fly .grab,
-		.ch-selfie .grab,
-		.ch-tickle .grab,
-		.ch-walk .grab,
-		.ch-sleep .grab,
-		.ch-held .grab,
-		.ch-dizzy .grab {
+		.ch-dizzy .grab,
+		.ch-jump .grab,
+		.ch-kick .grab {
 			animation: none;
 		}
 	}
@@ -785,8 +822,9 @@
 	.bubble {
 		pointer-events: auto;
 		position: absolute;
-		bottom: calc(100% - 34px);
-		left: 58px;
+		/* Anchored to his head, which rises and falls with the scale. */
+		bottom: calc(var(--scale, 1) * 360px);
+		left: calc(var(--scale, 1) * 150px);
 		width: max-content;
 		max-width: min(17rem, 46vw);
 		padding: 0.625rem 0.8125rem;
@@ -796,7 +834,7 @@
 	}
 	.bubble.left {
 		left: auto;
-		right: 58px;
+		right: calc(var(--scale, 1) * 150px);
 		border-bottom-left-radius: var(--r-lg);
 		border-bottom-right-radius: var(--r-xs);
 	}
@@ -822,6 +860,8 @@
 	   a toolbar. */
 	.controls {
 		pointer-events: auto;
+		/* Pulled up to meet his feet, which move as he scales. */
+		margin-top: calc((var(--scale, 1) - 1) * 420px + 0.25rem);
 		display: flex;
 		gap: 0.1875rem;
 		justify-content: center;
@@ -922,11 +962,12 @@
 	   He shrinks rather than disappearing — the user asked for him to be
 	   present, and hiding him on phones would quietly undo that. */
 	@media (max-width: 40rem) {
-		.companion {
-			width: 86px;
+		.bubble {
+			left: calc(var(--scale, 1) * 110px);
 		}
-		.grab {
-			height: 132px;
+		.bubble.left {
+			right: calc(var(--scale, 1) * 110px);
+			left: auto;
 		}
 		.bubble {
 			max-width: 56vw;

@@ -9,7 +9,7 @@
 	 * claim stays true as content is added.
 	 */
 	import { reveal } from '$lib/actions/reveal.js';
-	import { press, spotlight } from '$lib/motion/gestures.js';
+	import { spotlight } from '$lib/motion/gestures.js';
 	import SectionHead from './SectionHead.svelte';
 	import Icon from './Icon.svelte';
 
@@ -82,6 +82,7 @@
 		return t;
 	})();
 
+	$: avatar = profile?.avatar_url || '/profile_picture.png';
 	$: bio = profile?.bio ?? '';
 	/** Lead with the first paragraph; the rest stays available but secondary. */
 	$: bioParas = bio.split(/\n{2,}/).filter(Boolean);
@@ -96,11 +97,25 @@
 			note="Most of the work sits where these overlap — a model is only useful once something ships around it."
 		/>
 
-		{#if bioParas.length}
-			<div class="bio" use:reveal={{ delay: 60 }}>
-				{#each bioParas as para, i}
-					<p class={i === 0 ? 't-lead' : 't-body'}>{para}</p>
-				{/each}
+		<!-- Bio and the formal portrait.
+		     The photograph used to open the site; the character has that job
+		     now, so it moved here, where a reader who wants to know who they
+		     are actually dealing with will be looking. -->
+		{#if bioParas.length || avatar}
+			<div class="intro">
+				{#if bioParas.length}
+					<div class="bio" use:reveal={{ delay: 60 }}>
+						{#each bioParas as para, i}
+							<p class={i === 0 ? 't-lead' : 't-body'}>{para}</p>
+						{/each}
+					</div>
+				{/if}
+
+				{#if avatar}
+					<figure class="portrait card lume" use:reveal={{ delay: 120 }} use:spotlight>
+						<img src={avatar} alt={profile?.name ?? 'Venkataraman TB'} width="520" height="620" loading="lazy" />
+					</figure>
+				{/if}
 			</div>
 		{/if}
 
@@ -159,11 +174,38 @@
 </section>
 
 <style>
+	.intro {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 15rem;
+		gap: clamp(1.5rem, 4vw, 3rem);
+		align-items: start;
+		margin-bottom: clamp(2.5rem, 6vh, 4rem);
+	}
+	@media (max-width: 52rem) {
+		.intro {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.portrait {
+			max-width: 15rem;
+		}
+	}
+
 	.bio {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-		margin-bottom: clamp(2.5rem, 6vh, 4rem);
+	}
+
+	.portrait {
+		margin: 0;
+		border-radius: var(--r-xl);
+		aspect-ratio: 4 / 5;
+		box-shadow: var(--e2), var(--e-ring);
+	}
+	.portrait img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	/* ─── Domains ──────────────────────────────────────────────────────────── */

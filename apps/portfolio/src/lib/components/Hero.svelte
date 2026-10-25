@@ -7,14 +7,14 @@
 	 * full-viewport animation: a hero that moves on its own competes with the
 	 * reader for attention and is the first thing that reads as templated.
 	 *
-	 * The portrait tilts with the pointer on a spring — a small, continuous
-	 * response to a real input, which is the kind of motion that earns its
-	 * place. It is skipped entirely on coarse pointers and under reduced
-	 * motion.
+	 * The right-hand column is a reserved stage for the character, who is the
+	 * hero image. Nothing is drawn into it here — the Companion measures the
+	 * slot and places himself in it — but the space is real, so the headline
+	 * is laid out around him instead of him covering it.
 	 */
 	import { onMount } from 'svelte';
-	import { Spring, drive, SPRINGS, springConfig, prefersReducedMotion } from '$lib/motion/spring.js';
-	import { press, spotlight } from '$lib/motion/gestures.js';
+	import { prefersReducedMotion } from '$lib/motion/spring.js';
+	import { press } from '$lib/motion/gestures.js';
 	import Icon from './Icon.svelte';
 
 	export let profile = null;
@@ -35,7 +35,6 @@
 		profile?.tagline ?? 'AI engineer, full-stack developer and native iOS developer.';
 	$: location = profile?.location ?? '';
 	$: openToWork = profile?.open_to_work ?? false;
-	$: avatar = profile?.avatar_url || '/profile_picture.png';
 
 	/* ─── Name, split for a staggered line reveal ───────────────────────────
 	   Split on words rather than characters: per-character reveals on a name
@@ -48,39 +47,10 @@
 		requestAnimationFrame(() => (revealed = true));
 	});
 
-	/* ─── Portrait tilt ─────────────────────────────────────────────────────── */
-	let portrait;
-	const rx = new Spring(0, springConfig(SPRINGS.move.bounce, 0.5));
-	const ry = new Spring(0, springConfig(SPRINGS.move.bounce, 0.5));
+	/* The formal portrait moved to the Practice section; the character now
+	   occupies this column, so the pointer-tilt machinery that drove the old
+	   photo card is gone with it. */
 
-	const renderTilt = () => {
-		if (!portrait) return;
-		portrait.style.transform = `perspective(900px) rotateX(${rx.value}deg) rotateY(${ry.value}deg)`;
-	};
-
-	let fine = false;
-	onMount(() => {
-		fine =
-			window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
-			!prefersReducedMotion();
-	});
-
-	function onPointerMove(e) {
-		if (!fine || !portrait) return;
-		const r = portrait.getBoundingClientRect();
-		// ±4°. Any more and it stops reading as a sheet of glass catching the
-		// light and starts reading as a toy.
-		ry.setTarget(((e.clientX - r.left) / r.width - 0.5) * 8);
-		rx.setTarget(-((e.clientY - r.top) / r.height - 0.5) * 8);
-		drive([rx, ry], renderTilt);
-	}
-
-	function onPointerLeave() {
-		if (!fine) return;
-		rx.setTarget(0);
-		ry.setTarget(0);
-		drive([rx, ry], renderTilt);
-	}
 </script>
 
 <section id="top" class="hero">
@@ -150,22 +120,12 @@
 			</div>
 		</div>
 
-		<!-- Portrait -->
-		<!-- role="presentation": this wrapper only exists to host the tilt
-		     pointer handlers; the figure inside carries the real content. -->
-		<div
-			class="hero-portrait"
-			role="presentation"
-			class:in={revealed}
-			on:pointermove={onPointerMove}
-			on:pointerleave={onPointerLeave}
-		>
-			<div bind:this={portrait} class="portrait-tilt">
-				<figure class="portrait card lume" use:spotlight>
-					<img src={avatar} alt={name} width="520" height="620" loading="eager" fetchpriority="high" />
-				</figure>
-			</div>
-		</div>
+		<!-- The character's stage.
+		     A real column in the hero grid, not a decoration layered over it:
+		     the headline is laid out around this box, and the Companion
+		     measures it to place himself. Reserving the space is what stops
+		     him ever covering the copy. -->
+		<div id="character-stage" class="hero-stage" class:in={revealed} aria-hidden="true"></div>
 	</div>
 
 	<a
@@ -201,7 +161,7 @@
 			grid-template-columns: minmax(0, 1fr);
 			gap: 2.5rem;
 		}
-		.hero-portrait {
+		.hero-stage {
 			order: -1;
 			max-width: 17rem;
 		}
@@ -232,7 +192,7 @@
 	.hero-tagline,
 	.hero-meta,
 	.hero-actions,
-	.hero-portrait {
+	.hero-stage {
 		opacity: 0;
 		transform: translateY(10px);
 		transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
@@ -241,7 +201,7 @@
 	.hero-tagline.in,
 	.hero-meta.in,
 	.hero-actions.in,
-	.hero-portrait.in {
+	.hero-stage.in {
 		opacity: 1;
 		transform: none;
 	}
@@ -257,7 +217,7 @@
 	.hero-actions {
 		transition-delay: 470ms;
 	}
-	.hero-portrait {
+	.hero-stage {
 		transition-delay: 240ms;
 	}
 
@@ -267,7 +227,7 @@
 		.hero-tagline,
 		.hero-meta,
 		.hero-actions,
-		.hero-portrait {
+		.hero-stage {
 			transform: none !important;
 			transition: opacity 300ms linear;
 		}
@@ -340,26 +300,14 @@
 		border-color: var(--hairline-strong);
 	}
 
-	/* ─── Portrait ─────────────────────────────────────────────────────────── */
-	.hero-portrait {
+	/* ─── Character stage ──────────────────────────────────────────────────── */
+	.hero-stage {
 		justify-self: center;
+		align-self: end;
 		width: 100%;
 		max-width: 22rem;
-	}
-	.portrait-tilt {
-		will-change: transform;
-		transform-style: preserve-3d;
-	}
-	.portrait {
-		margin: 0;
-		border-radius: var(--r-xl);
-		box-shadow: var(--e3), var(--e-ring);
-		aspect-ratio: 4 / 5;
-	}
-	.portrait img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
+		/* This reserved height IS the character's hero height. */
+		height: min(62vh, 30rem);
 	}
 
 	/* ─── Scroll cue ───────────────────────────────────────────────────────── */
