@@ -20,7 +20,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { Spring, drive, project, SPRINGS, springConfig, prefersReducedMotion } from '$lib/motion/spring.js';
 	import { draggable } from '$lib/motion/gestures.js';
-	import Sprite from './Sprite.svelte';
+	import GeoCharacter from './GeoCharacter.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { GREETING, SECTIONS, REACTIONS, TRICKS, pick } from './script.js';
 
@@ -55,17 +55,27 @@
 	/* ─── Presentation state ────────────────────────────────────────────── */
 	let face = 'neutral';
 	let pose = 'idle';
-	// No blinking and no eye tracking: these are photographs. The figure
-	// leans toward the pointer instead — the only "aliveness" a still image
-	// can honestly offer.
+	// The rig poses him from joint angles, so there is no longer a set of
+	// pre-shot images to pick between: `pose` IS the animation name. And he
+	// has eyes again, so he can track the cursor.
 	let lean = 0;
+	let lookX = 0;
+	let lookY = 0;
+	/** 1 faces right, -1 faces left — he turns toward where he is going. */
+	let facing = 1;
+	/** Impact squash, multiplied into the scale when he lands. */
 	let squash = { sx: 1, sy: 1 };
+	/** Whole-figure tilt, degrees. */
 	let rot = 0;
-	let invisible = false; // the vanish trick
+	/** The vanish trick. */
+	let invisible = false;
 
-	/** Poses that call for the dance photograph rather than the pointing one. */
-	const DANCE_POSES = new Set(['dance', 'moonwalk', 'punch', 'kick', 'selfie', 'panic', 'tickle', 'fly']);
-	$: shot = DANCE_POSES.has(pose) ? 'dance' : 'point';
+	/**
+	 * What he actually plays. Standing neutral is the right rest pose in the
+	 * guide lane, but a hero image of a man standing still is a waste of the
+	 * slot — centre stage he gestures up at his own name instead.
+	 */
+	$: anim = pose === 'idle' && mode === 'hero' && !held ? 'point' : pose;
 
 	/* ─── Speech ────────────────────────────────────────────────────────── */
 	let bubble = '';
@@ -165,6 +175,11 @@
 	/** Move him to wherever the current mode says he belongs. */
 	function restage({ instant = false } = {}) {
 		const t = mode === 'hero' ? heroTarget() ?? guideTarget() : guideTarget();
+
+		// Turn him to face the page rather than the margin. Centre stage that
+		// means gesturing back toward his own name; in the guide lane on the
+		// left it means facing the content he is narrating.
+		facing = t.x + W / 2 > window.innerWidth / 2 ? -1 : 1;
 
 		if (instant) {
 			x.set(t.x);
@@ -395,6 +410,7 @@
 			mode = 'free';
 			const b = bounds();
 			const target = x.value < window.innerWidth / 2 ? b.maxX : b.minX;
+			facing = target > x.value ? 1 : -1;
 			// The spring's response is matched to the gait so the feet are not
 			// skating: a run covers the same ground in a third of the time.
 			const response = trick.id === 'run' ? 1.1 : trick.id === 'moonwalk' ? 3.4 : 2.4;
@@ -523,11 +539,24 @@
 
 	function onPointerMove(e) {
 		if (held || busy) return;
-		// He leans toward the pointer. Capped low — past about 8 degrees a
-		// photograph stops reading as a lean and starts reading as a tilted
-		// picture.
-		const dx = e.clientX - (x.value + W / 2);
-		lean = Math.max(-8, Math.min(8, (dx / (window.innerWidth / 2)) * 8));
+
+		const cx = x.value + W / 2;
+		const cy = y.value + H - H * sc.value * 0.72; // about head height
+		const dx = e.clientX - cx;
+		const dy = e.clientY - cy;
+
+		// Eyes track the pointer, normalised and clamped so they stay inside
+		// their sockets however far away the cursor is.
+		const d = Math.hypot(dx, dy) || 1;
+		lookX = Math.max(-1, Math.min(1, (dx / d) * Math.min(d / 220, 1)));
+		lookY = Math.max(-1, Math.min(1, (dy / d) * Math.min(d / 220, 1)));
+
+		// And he leans after them, a little.
+		lean = Math.max(-7, Math.min(7, (dx / (window.innerWidth / 2)) * 7));
+
+		// He turns to face the cursor, but only once it is properly past him:
+		// flipping every time the pointer crosses his nose is a twitch.
+		if (Math.abs(dx) > 90) facing = dx < 0 ? -1 : 1;
 	}
 
 	function onResize() {
@@ -701,7 +730,7 @@
 				on:pointerdown={onPoke}
 				role="presentation"
 			>
-				<Sprite {shot} {lean} />
+				<GeoCharacter animation={anim} {lean} {facing} {lookX} {lookY} />
 			</div>
 
 			<!-- Controls -->
@@ -769,8 +798,11 @@
 	.grab {
 		pointer-events: auto;
 		height: 420px;
-		/* Scaled from the feet so he stays planted as he grows and shrinks. */
-		transform: scale(var(--scale, 1));
+		/* Two scales multiplied: --scale is where he is in the story (hero vs
+		   guide), --sx/--sy is the impact squash when he lands. Keeping them
+		   separate means a landing never fights the staging. */
+		transform: scale(calc(var(--scale, 1) * var(--sx, 1)), calc(var(--scale, 1) * var(--sy, 1)))
+			rotate(var(--rot, 0deg));
 		transform-origin: 50% 100%;
 		cursor: grab;
 		touch-action: none;
@@ -786,9 +818,9 @@
 
 	/* ══════════════════════════════════════════════════════════════════════
 	   WHOLE-BODY MOTION
-	   Limb motion belongs to the sprite rig (Sprite.svelte), which hinges his
-	   two halves at the waist. What stays here is motion that moves the whole
-	   figure at once, because only this element knows where he is on screen.
+	   Limb motion belongs to the rig (rig.js + GeoCharacter.svelte), which
+	   poses every joint. What stays here is motion that moves the whole figure
+	   at once, because only this element knows where he is on the page.
 	   ══════════════════════════════════════════════════════════════════════ */
 
 	.ch-dizzy .grab {

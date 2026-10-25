@@ -1,9 +1,14 @@
-# Character sprite sources
+# Character reference photographs
 
-`point.png` and `dance.png` are the background-removed photographs the pixel
-sprites in `static/character/px-*.png` are generated from. They live here
-rather than in `static/` so they are versioned but **not served** — at ~200KB
-each they would otherwise be deployed for nothing.
+> **Not used by the site.** The character is now built from geometric
+> primitives — see `src/lib/character/rig.js`. These are kept as the visual
+> reference the rig's proportions and palette were taken from (navy cap,
+> beard, blue tee, light denim, white sneakers), and in case a photographic
+> treatment is ever wanted again.
+
+`point.png` and `dance.png` are the background-removed photographs. They live
+here rather than in `static/` so they are versioned but **not served** — at
+~200KB each they would otherwise be deployed for nothing.
 
 The full-resolution originals (~2MB each) are in `assets-source/` at the repo
 root, which is gitignored.
