@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { token } from '$lib/stores/auth.js';
@@ -7,7 +8,7 @@
 
   // Auth guard — unchanged behaviour, redirect out if there is no token.
   onMount(() => {
-    if (!get(token)) goto('/login');
+    if (!get(token)) goto(`${base}/login`);
   });
 </script>
 

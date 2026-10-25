@@ -239,7 +239,7 @@
     role="presentation"
   ></div>
 
-  <aside class="drawer" role="dialog" aria-modal="true" aria-label="{editing ? 'Edit' : 'Create'} {title}">
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="{editing ? 'Edit' : 'Create'} {title}">
     <header class="drawer-head">
       <div>
         <span class="t-micro">&#91; {editing ? 'Editing' : 'New record'} &#93;</span>
@@ -342,7 +342,7 @@
         </button>
       </div>
     </form>
-  </aside>
+  </div>
 {/if}
 
 <style>
@@ -400,7 +400,7 @@
   }
   .mini:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
-  .mini-warn { color: var(--hazard-ink); border-color: rgba(230, 25, 25, 0.4); }
+  .mini-warn { color: var(--hazard-ink); border-color: rgb(var(--bad-rgb) / 0.4); }
   .mini-warn:hover { background: var(--hazard); color: var(--paper); border-color: var(--hazard); }
 
   .mini-danger {
@@ -511,7 +511,8 @@
   .check-box {
     width: 1rem;
     height: 1rem;
-    accent-color: var(--hazard);
+    /* A checkbox tick is a selection, not a warning. */
+    accent-color: var(--accent);
     flex-shrink: 0;
   }
   .check-label {

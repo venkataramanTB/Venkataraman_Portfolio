@@ -28,3 +28,4 @@ audit/
 # targeting and job-application history. Only the trimmed, public CSVs in
 # apps/api/data/linkedin/ are committed.
 *LinkedInDataExport*.zip
+.playwright-mcp/

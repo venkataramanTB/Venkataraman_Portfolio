@@ -1,204 +1,147 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { useGSAP } from '$lib/gsap.js';
+	/**
+	 * Cold-start screen.
+	 *
+	 * The API sleeps when idle, so the first visit after a quiet period waits
+	 * on a container waking up. This exists to make that wait honest: it says
+	 * what is happening and roughly how long, because an unexplained spinner
+	 * for twenty seconds reads as broken rather than as slow.
+	 *
+	 * `hide()` returns a promise so the caller can await the exit before
+	 * swapping in content.
+	 */
+	import { onMount } from 'svelte';
+	import { prefersReducedMotion } from '$lib/motion/spring.js';
 
-  let el, barEl;
-  let ctx;
-  let phase = 0;
-  let elapsed = 0;
-  let interval, ticker;
+	let root;
+	let visible = true;
+	let elapsed = 0;
+	let timer;
 
-  // Honest about the cold start rather than cheerful about it.
-  const PHASES = [
-    { code: 'P-01', msg: 'Initialising',   detail: 'Building render environment' },
-    { code: 'P-02', msg: 'Waking server', detail: 'Render cold start — up to 30s' },
-    { code: 'P-03', msg: 'Fetching data', detail: 'Querying Postgres' },
-    { code: 'P-04', msg: 'Composing',     detail: 'Laying out document' },
-  ];
+	/** Staged copy. A changing message is evidence of progress; a frozen one
+	    is evidence of a hang. */
+	$: stage =
+		elapsed < 4
+			? 'Connecting'
+			: elapsed < 12
+				? 'Waking the server'
+				: elapsed < 24
+					? 'Still waking — it sleeps when idle'
+					: 'Taking longer than usual';
 
-  $: current = PHASES[phase];
+	onMount(() => {
+		timer = setInterval(() => (elapsed += 1), 1000);
+		return () => clearInterval(timer);
+	});
 
-  onMount(async () => {
-    ticker = setInterval(() => (elapsed += 1), 1000);
-    interval = setInterval(() => {
-      phase = Math.min(phase + 1, PHASES.length - 1);
-    }, 6000);
-
-    const g = await useGSAP();
-    if (!g) return;
-    const { gsap } = g;
-
-    ctx = gsap.context(() => {
-      gsap.from(el, { opacity: 0, duration: 0.3, ease: 'none' });
-      // Indeterminate sweep: we genuinely don't know how long the cold start takes,
-      // so this reads as activity, not as a fake percentage.
-      gsap.fromTo(
-        barEl,
-        { scaleX: 0.04, transformOrigin: 'left' },
-        {
-          scaleX: 1,
-          duration: 2.2,
-          ease: 'power1.inOut',
-          repeat: -1,
-          yoyo: true,
-          transformOrigin: 'left',
-        }
-      );
-    });
-  });
-
-  export async function hide() {
-    const g = await useGSAP();
-    if (!g || !el) return;
-    const { gsap } = g;
-    return new Promise((resolve) => {
-      // Shutter up — matches the panel/plate wipes used elsewhere
-      gsap.to(el, {
-        clipPath: 'inset(0 0 100% 0)',
-        duration: 0.5,
-        ease: 'expo.inOut',
-        onComplete: resolve,
-      });
-    });
-  }
-
-  onDestroy(() => {
-    ctx?.revert();
-    clearInterval(interval);
-    clearInterval(ticker);
-  });
+	export function hide() {
+		clearInterval(timer);
+		return new Promise((resolve) => {
+			if (!root || prefersReducedMotion()) {
+				visible = false;
+				resolve();
+				return;
+			}
+			// Blur and scale animate together, so the screen reads as a material
+			// lifting away rather than a rectangle fading out.
+			root.style.transition =
+				'opacity 420ms var(--ease-in), transform 520ms var(--ease-out), backdrop-filter 420ms var(--ease-in)';
+			root.style.opacity = '0';
+			root.style.transform = 'scale(1.04)';
+			root.style.backdropFilter = 'blur(0px)';
+			root.addEventListener(
+				'transitionend',
+				() => {
+					visible = false;
+					resolve();
+				},
+				{ once: true }
+			);
+			// Belt and braces: if the transition never fires (background tab),
+			// the caller must still proceed.
+			setTimeout(() => {
+				visible = false;
+				resolve();
+			}, 700);
+		});
+	}
 </script>
 
-<div bind:this={el} class="boot" role="status" aria-live="polite">
-  <div class="shell boot-inner">
-    <!-- Header -->
-    <div class="boot-head">
-      <span class="t-micro">&#91; Loading document &#93;</span>
-      <span class="t-micro clock">T+{String(elapsed).padStart(3, '0')}s</span>
-    </div>
-
-    <hr class="band-rule-heavy" />
-
-    <!-- Macro status -->
-    <p class="boot-macro">{current.msg}<span class="blink caret">_</span></p>
-
-    <!-- Progress -->
-    <div class="track" aria-hidden="true">
-      <div bind:this={barEl} class="track-fill"></div>
-    </div>
-
-    <!-- Phase log -->
-    <ol class="phases">
-      {#each PHASES as p, i}
-        <li class="phase" class:is-done={i < phase} class:is-now={i === phase}>
-          <span class="t-idx">{p.code}</span>
-          <span class="phase-msg">{p.msg}</span>
-          <span class="phase-detail">{p.detail}</span>
-          <span class="phase-mark" aria-hidden="true">
-            {i < phase ? '×' : i === phase ? '›' : '·'}
-          </span>
-        </li>
-      {/each}
-    </ol>
-
-    <div class="hazard-stripes boot-stripe" aria-hidden="true"></div>
-  </div>
-</div>
+{#if visible}
+	<div bind:this={root} class="screen" role="status" aria-live="polite">
+		<div class="inner">
+			<span class="pulse" aria-hidden="true"></span>
+			<p class="stage">{stage}</p>
+			<p class="t-mono hint">
+				{elapsed}s
+				{#if elapsed >= 12}
+					<span class="dim">· free-tier cold start</span>
+				{/if}
+			</p>
+		</div>
+	</div>
+{/if}
 
 <style>
-  .boot {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-modal);
-    background: var(--paper);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    will-change: clip-path;
-  }
+	.screen {
+		position: fixed;
+		inset: 0;
+		z-index: var(--z-modal);
+		display: grid;
+		place-items: center;
+		background: var(--bg);
+		will-change: opacity, transform;
+	}
 
-  .boot-inner { width: 100%; }
+	.inner {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		text-align: center;
+		padding: var(--gutter);
+	}
 
-  .boot-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-bottom: 0.625rem;
-  }
-  .clock { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+	/* A single breathing dot. No spinner: a spinner implies a known, short
+	   wait, and this one is neither. */
+	.pulse {
+		width: 0.75rem;
+		height: 0.75rem;
+		border-radius: var(--r-full);
+		background: var(--text);
+		animation: pulse 1.8s var(--ease-soft) infinite;
+	}
+	@keyframes pulse {
+		0%,
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+		50% {
+			transform: scale(0.6);
+			opacity: 0.35;
+		}
+	}
 
-  .boot-macro {
-    margin: clamp(1.5rem, 4vh, 2.5rem) 0 clamp(1.25rem, 3vh, 2rem);
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(2rem, 7vw, 5rem);
-    line-height: 0.9;
-    letter-spacing: -0.04em;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
-  .caret { color: var(--hazard); }
+	.stage {
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 540;
+		letter-spacing: -0.01em;
+		color: var(--text);
+	}
 
-  .track {
-    height: 4px;
-    background: var(--paper-sunk);
-    border: 1px solid var(--rule);
-    overflow: hidden;
-    margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
-  }
-  .track-fill {
-    height: 100%;
-    width: 100%;
-    background: var(--hazard);
-    will-change: transform;
-  }
+	.hint {
+		margin: 0;
+		color: var(--text-4);
+	}
+	.dim {
+		opacity: 0.75;
+	}
 
-  .phases {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border-top: 1px solid var(--rule-strong);
-    max-width: 640px;
-  }
-
-  .phase {
-    display: grid;
-    grid-template-columns: 3.5rem minmax(0, 8rem) minmax(0, 1fr) 1.5rem;
-    gap: 0.875rem;
-    align-items: baseline;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--rule);
-    opacity: 0.4;
-    transition: opacity 300ms var(--ease-out);
-  }
-  .phase.is-done { opacity: 0.75; }
-  .phase.is-now  { opacity: 1; }
-
-  .phase-msg {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
-  .phase-detail {
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--ink-3);
-  }
-  .phase-mark { text-align: right; color: var(--ink-4); }
-  .phase.is-now .phase-mark { color: var(--hazard); }
-
-  @media (max-width: 600px) {
-    .phase { grid-template-columns: 3.25rem minmax(0, 1fr) 1.5rem; }
-    .phase-detail { display: none; }
-  }
-
-  .boot-stripe {
-    height: 10px;
-    opacity: 0.16;
-    margin-top: clamp(1.5rem, 4vh, 2.5rem);
-  }
+	@media (prefers-reduced-motion: reduce) {
+		.pulse {
+			animation: none;
+		}
+	}
 </style>

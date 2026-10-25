@@ -1,97 +1,136 @@
 <script>
-  import { theme, setTheme } from '$lib/theme.js';
-  import Icon from './Icon.svelte';
+	/**
+	 * Substrate control. A segmented control rather than a single toggle,
+	 * because "follow the system" is a real third choice and hiding it behind
+	 * a two-state switch takes that agency away.
+	 *
+	 * The selection thumb is spring-driven and re-aims from wherever it
+	 * currently is, so rapidly clicking across the three options tracks the
+	 * clicks continuously instead of restarting a transition each time.
+	 */
+	import { onMount, onDestroy } from 'svelte';
+	import { theme, setTheme, MODES } from '$lib/theme.js';
+	import { Spring, drive, SPRINGS, springConfig } from '$lib/motion/spring.js';
+	import Icon from './Icon.svelte';
 
-  /** 'bar' sits inline in the navbar; 'stack' is for the mobile sheet. */
-  export let variant = 'bar';
+	const LABELS = { auto: 'System', light: 'Light', dark: 'Dark' };
+	const ICONS = { auto: 'theme-auto', light: 'theme-light', dark: 'theme-dark' };
 
-  // Three explicit states instead of a sun/moon toggle: following the OS is a
-  // real, distinct choice and a two-state switch cannot express it.
-  const OPTIONS = [
-    { value: 'auto',  label: 'Auto',  icon: 'theme-auto',  hint: 'Follow system setting' },
-    { value: 'light', label: 'Light', icon: 'theme-light', hint: 'Paper substrate' },
-    { value: 'dark',  label: 'Dark',  icon: 'theme-dark',  hint: 'Terminal substrate' },
-  ];
+	let track;
+	/** @type {HTMLButtonElement[]} */
+	let buttons = [];
+	let thumb;
+
+	const x = new Spring(0, springConfig(SPRINGS.move.bounce, SPRINGS.move.response));
+	const w = new Spring(0, springConfig(SPRINGS.move.bounce, SPRINGS.move.response));
+
+	const render = () => {
+		if (!thumb) return;
+		thumb.style.width = `${w.value}px`;
+		thumb.style.transform = `translate3d(${x.value}px, 0, 0)`;
+	};
+
+	let ro;
+	let current = 'auto';
+
+	function place(mode, animate = true) {
+		const i = MODES.indexOf(mode);
+		const el = buttons[i];
+		if (!el || !track) return;
+
+		const t = track.getBoundingClientRect();
+		const b = el.getBoundingClientRect();
+		const left = b.left - t.left;
+
+		if (!animate) {
+			x.set(left);
+			w.set(b.width);
+			render();
+			return;
+		}
+		// setTarget, not set: an in-flight thumb keeps its velocity and simply
+		// re-aims, which is what makes a fast double-click feel continuous.
+		x.setTarget(left);
+		w.setTarget(b.width);
+		drive([x, w], render);
+	}
+
+	const unsub = theme.subscribe((v) => {
+		current = v;
+		if (thumb) place(v);
+	});
+
+	onMount(() => {
+		place(current, false);
+		// The thumb is positioned in pixels, so it has to be re-measured when
+		// the control resizes — a text-size change or a font swap moves it.
+		ro = new ResizeObserver(() => place(current, false));
+		ro.observe(track);
+	});
+
+	onDestroy(() => {
+		unsub();
+		ro?.disconnect();
+	});
+
+	function onKeydown(e) {
+		const i = MODES.indexOf(current);
+		if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+			e.preventDefault();
+			setTheme(MODES[(i + 1) % MODES.length]);
+		} else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+			e.preventDefault();
+			setTheme(MODES[(i - 1 + MODES.length) % MODES.length]);
+		}
+	}
 </script>
 
 <div
-  class="switch"
-  class:is-stack={variant === 'stack'}
-  role="radiogroup"
-  aria-label="Colour substrate"
+	bind:this={track}
+	class="segmented"
+	role="radiogroup"
+	tabindex="-1"
+	aria-label="Colour theme"
+	on:keydown={onKeydown}
 >
-  <div class="switch-track">
-    {#each OPTIONS as opt}
-      <button
-        type="button"
-        role="radio"
-        aria-checked={$theme === opt.value}
-        aria-label="{opt.label} — {opt.hint}"
-        title={opt.hint}
-        class="seg"
-        class:is-on={$theme === opt.value}
-        on:click={() => setTheme(opt.value)}
-      >
-        <Icon name={opt.icon} size={14} />
-        <!-- Label is kept only in the stacked (mobile) variant -->
-        <span class="seg-label">{opt.label}</span>
-      </button>
-    {/each}
-  </div>
+	<span bind:this={thumb} class="segmented-thumb" aria-hidden="true"></span>
+
+	{#each MODES as mode, i}
+		<button
+			bind:this={buttons[i]}
+			class="segment seg"
+			role="radio"
+			aria-checked={current === mode}
+			tabindex={current === mode ? 0 : -1}
+			title={LABELS[mode]}
+			on:click={() => setTheme(mode)}
+		>
+			<Icon name={ICONS[mode]} size={15} />
+			<span class="seg-text">{LABELS[mode]}</span>
+		</button>
+	{/each}
 </div>
 
 <style>
-  .switch {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+	.seg {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding-inline: 0.6875rem;
+	}
 
-
-  .switch-track {
-    display: inline-flex;
-    border: 1px solid var(--rule-strong);
-  }
-
-  .seg {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.35rem 0.45rem;
-    background: transparent;
-    border: 0;
-    border-right: 1px solid var(--rule);
-    color: var(--ink-4);
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition:
-      background-color 180ms var(--ease-out),
-      color 180ms var(--ease-out);
-  }
-  .seg:last-child { border-right: 0; }
-  .seg:hover { background: var(--paper-sunk); color: var(--ink); }
-
-  /* Selected state is a solid ink block — unambiguous, matches the nav tabs */
-  .seg.is-on {
-    background: var(--ink);
-    color: var(--paper);
-  }
-
-  /* ─── Stacked variant for the mobile sheet ─────────────────────────────── */
-  .is-stack {
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-  .is-stack .seg { padding: 0.5rem 0.7rem; font-size: 0.625rem; }
-  /* Icon-only is fine in the dense nav bar; the mobile sheet shows both. */
-  .seg-label { display: none; }
-  .is-stack .seg-label { display: inline; }
-  .is-stack .switch-track { flex: 1; }
-  .is-stack .seg { flex: 1; justify-content: center; }
+	/* Below the breakpoint the control keeps all three options but drops to
+	   icons only — removing a choice to save space would be the wrong trade. */
+	@media (max-width: 30rem) {
+		.seg-text {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+		}
+		.seg {
+			padding-inline: 0.5rem;
+		}
+	}
 </style>

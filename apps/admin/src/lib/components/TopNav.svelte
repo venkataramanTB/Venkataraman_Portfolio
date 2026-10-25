@@ -1,85 +1,89 @@
 <script>
+  /**
+   * Console chrome: identity bar plus a section rail.
+   *
+   * Top navigation rather than a left sidebar — this console has eleven flat
+   * sections with no hierarchy between them, and a rail across the top keeps
+   * the full working width for the tables, which are the point.
+   */
   import { page } from '$app/stores';
+  import { base } from '$app/paths';
   import { logout } from '$lib/stores/auth.js';
   import { goto } from '$app/navigation';
   import ThemeSwitch from './ThemeSwitch.svelte';
   import Icon from './Icon.svelte';
 
-  // Index codes instead of emoji. No rocketships, no graduation caps.
+  // Labels name their contents. The numeric codes the old console showed
+  // alongside them were decoration — nobody navigates by "07".
   const navItems = [
-    { href: '/dashboard',              code: '00', label: 'Overview',     icon: 'index' },
-    { href: '/dashboard/profile',      code: '01', label: 'Profile',      icon: 'profile' },
-    { href: '/dashboard/skills',       code: '02', label: 'Skills',       icon: 'stack' },
-    { href: '/dashboard/experience',   code: '03', label: 'Experience',   icon: 'work' },
-    { href: '/dashboard/projects',     code: '04', label: 'Projects',     icon: 'projects' },
-    { href: '/dashboard/certificates', code: '05', label: 'Certificates', icon: 'verify' },
-    { href: '/dashboard/achievements', code: '06', label: 'Achievements', icon: 'achievements' },
-    { href: '/dashboard/education',    code: '07', label: 'Education',    icon: 'education' },
-    { href: '/dashboard/stats',        code: '08', label: 'Stats',        icon: 'stats' },
-    { href: '/dashboard/social',       code: '09', label: 'Social',       icon: 'link' },
-    { href: '/dashboard/cv',           code: '10', label: 'CV Import',    icon: 'document' },
+    { href: '/dashboard',              label: 'Overview',     icon: 'overview' },
+    { href: '/dashboard/profile',      label: 'Profile',      icon: 'profile' },
+    { href: '/dashboard/skills',       label: 'Skills',       icon: 'stack' },
+    { href: '/dashboard/experience',   label: 'Experience',   icon: 'work' },
+    { href: '/dashboard/projects',     label: 'Projects',     icon: 'projects' },
+    { href: '/dashboard/certificates', label: 'Certificates', icon: 'verify' },
+    { href: '/dashboard/achievements', label: 'Achievements', icon: 'achievements' },
+    { href: '/dashboard/education',    label: 'Education',    icon: 'education' },
+    { href: '/dashboard/stats',        label: 'Stats',        icon: 'stats' },
+    { href: '/dashboard/social',       label: 'Social',       icon: 'link' },
+    { href: '/dashboard/cv',           label: 'CV Import',    icon: 'document' },
   ];
 
   let open = false;
 
-  $: current = navItems.find((i) => i.href === $page.url.pathname);
+  $: current = navItems.find((i) => `${base}${i.href}` === $page.url.pathname);
 
   function handleLogout() {
     logout();
-    goto('/login');
+    goto(`${base}/login`);
   }
 </script>
 
-<header class="nav">
+<header class="nav glass">
   <!-- Identity bar -->
   <div class="bar">
-    <a href="/dashboard" class="brand">
-      <span class="brand-name">VTB</span>
-      <span class="brand-sub">Control</span>
+    <a href={`${base}/dashboard`} class="brand">
+      <span class="brand-mark" aria-hidden="true">V</span>
+      <span class="brand-text">Control</span>
     </a>
 
-    <span class="t-micro crumb">
-      {#if current}
-        <span class="crumb-code">{current.code}</span> / {current.label}
-      {:else}
-        Console
-      {/if}
-    </span>
+    <span class="crumb">{current ? current.label : 'Console'}</span>
 
     <div class="bar-tail">
       <ThemeSwitch />
-      <a href="/" class="btn btn-ghost bar-btn" aria-label="View site" title="View site">
-        <Icon name="site" size={15} />
+
+      <!-- Absolute root: the portfolio lives at / even when this console is
+           mounted under a base path on the same origin. -->
+      <a href="/" class="icon-btn" aria-label="View the portfolio" title="View the portfolio">
+        <Icon name="site" size={16} />
       </a>
-      <button on:click={handleLogout} class="btn btn-ghost bar-btn"
-              aria-label="Sign out" title="Sign out">
-        <Icon name="logout" size={15} />
+
+      <button on:click={handleLogout} class="icon-btn" aria-label="Sign out" title="Sign out">
+        <Icon name="logout" size={16} />
       </button>
+
       <button
-        class="btn btn-ghost bar-btn bar-toggle"
+        class="icon-btn bar-toggle"
         on:click={() => (open = !open)}
         aria-expanded={open}
         aria-controls="nav-tabs"
         aria-label={open ? 'Close sections' : 'Show sections'}
-        title={open ? 'Close sections' : 'Show sections'}
       >
-        <Icon name={open ? 'close' : 'menu'} size={16} />
+        <Icon name={open ? 'close' : 'menu'} size={17} />
       </button>
     </div>
   </div>
 
-  <!-- Section tabs: top navigation, not a left rail -->
+  <!-- Section rail -->
   <nav id="nav-tabs" class="tabs" class:tabs-open={open} aria-label="Sections">
     {#each navItems as item}
-      {@const active = $page.url.pathname === item.href}
+      {@const active = $page.url.pathname === `${base}${item.href}`}
       <a
-        href={item.href}
+        href={`${base}${item.href}`}
         class="tab"
         class:is-active={active}
         aria-current={active ? 'page' : undefined}
         on:click={() => (open = false)}
-        aria-label={item.label}
-        title={item.label}
       >
         <Icon name={item.icon} size={16} />
         <span class="tab-label">{item.label}</span>
@@ -93,8 +97,10 @@
     position: sticky;
     top: 0;
     z-index: var(--z-nav);
-    background: var(--paper);
-    border-bottom: 1px solid var(--rule-strong);
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    border-radius: 0;
   }
 
   /* ─── Identity bar ─────────────────────────────────────────────────────── */
@@ -102,92 +108,128 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 0 1rem;
+    padding: 0.5rem 1rem;
     min-height: 3rem;
-    border-bottom: 1px solid var(--rule);
   }
 
   .brand {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     text-decoration: none;
-    padding-right: 1rem;
-    border-right: 1px solid var(--rule);
+    flex-shrink: 0;
   }
-  .brand-name {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 1rem;
-    letter-spacing: -0.025em;
-    color: var(--ink);
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--r-full);
+    background: var(--fill);
+    color: var(--fill-text);
+    font-size: 0.8125rem;
+    font-weight: 680;
+    letter-spacing: -0.02em;
   }
-  .brand-sub {
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--ink-4);
+  .brand-text {
+    font-size: 0.9375rem;
+    font-weight: 620;
+    letter-spacing: -0.014em;
+    color: var(--text);
   }
 
-  .crumb { flex: 1; color: var(--ink-3); }
-  .crumb-code { color: var(--hazard); font-weight: 600; }
+  .crumb {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.875rem;
+    color: var(--text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-  .bar-tail { display: flex; align-items: center; gap: 0.5rem; }
-  .bar-btn { padding: 0.35rem 0.5rem; }
+  .bar-tail {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .icon-btn {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--text-3);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 180ms var(--ease-soft), color 180ms var(--ease-soft);
+  }
+  .icon-btn:hover {
+    background: var(--bg-sunk);
+    color: var(--text);
+  }
+
   .bar-toggle { display: none; }
 
-  /* ─── Tabs ─────────────────────────────────────────────────────────────── */
+  /* ─── Section rail ─────────────────────────────────────────────────────── */
   .tabs {
     display: flex;
+    gap: 0.125rem;
+    padding: 0 0.75rem 0.5rem;
     overflow-x: auto;
     scrollbar-width: none;
   }
   .tabs::-webkit-scrollbar { display: none; }
 
   .tab {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.8rem;
+    gap: 0.4375rem;
+    padding: 0.4375rem 0.75rem;
     flex-shrink: 0;
-    border-right: 1px solid var(--rule);
+    border-radius: var(--r-full);
     text-decoration: none;
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out);
+    font-size: 0.84375rem;
+    font-weight: 520;
+    letter-spacing: -0.004em;
+    color: var(--text-3);
+    white-space: nowrap;
+    transition: background-color 180ms var(--ease-soft), color 180ms var(--ease-soft);
   }
-  .tab:hover { background: var(--paper-sunk); color: var(--ink); }
-
+  .tab:hover {
+    background: var(--bg-sunk);
+    color: var(--text);
+  }
   .tab.is-active {
-    background: var(--ink);
-    color: var(--paper);
+    background: var(--fill);
+    color: var(--fill-text);
   }
 
-  .tab-label { display: none; }
+  /* ─── Narrow ───────────────────────────────────────────────────────────── */
+  @media (max-width: 54rem) {
+    .bar-toggle { display: grid; }
 
-  @media (max-width: 860px) {
-    .tab-label { display: inline; }
-  }
-
-  /* ─── Mobile: collapse tabs behind the toggle ──────────────────────────── */
-  @media (max-width: 860px) {
-    .bar-toggle { display: inline-flex; }
+    /* The rail becomes a disclosed list rather than a horizontal scroller:
+       eleven items scrolled sideways on a phone hides most of them with no
+       indication they exist. */
     .tabs {
       display: none;
       flex-direction: column;
-      overflow: visible;
+      gap: 0.125rem;
+      padding: 0 0.5rem 0.5rem;
+      max-height: 60dvh;
+      overflow-y: auto;
     }
     .tabs-open { display: flex; }
+
     .tab {
-      border-right: 0;
-      border-bottom: 1px solid var(--rule);
-      padding: 0.6875rem 1rem;
+      border-radius: var(--r-md);
+      padding: 0.625rem 0.75rem;
     }
+    .crumb { font-size: 0.8125rem; }
   }
 </style>

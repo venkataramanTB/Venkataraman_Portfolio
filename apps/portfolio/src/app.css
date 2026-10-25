@@ -3,596 +3,918 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   SWISS INDUSTRIAL PRINT — design tokens
-   One substrate (matte documentation paper). One accent (aviation red).
-   No gradients. No border-radius. No soft shadows. Hairlines and grids only.
+   APERTURE — design system
+   ──────────────────────────────────────────────────────────────────────────────
+   Apple's interface approach translated to the web. Three ideas govern
+   everything below:
+
+   1. DEPTH, NOT DECORATION. Hierarchy comes from material weight and
+      elevation. Chrome is a translucent layer that content scrolls beneath,
+      never an opaque strip that eats a fixed band of the viewport.
+   2. ONE CHROMATIC ACCENT. Primary actions are a high-contrast fill that
+      inverts with the substrate; `--accent` is reserved for focus, links and
+      live status. A second chromatic accent is never introduced — the
+      cyan→violet gradient is the recognisable fingerprint of a generated
+      portfolio and reads as borrowed taste.
+   3. MOTION IS NOT A LAYER. Anything a pointer can touch animates on a
+      spring from its live on-screen value ($lib/motion). CSS transitions are
+      used only where nothing can interrupt them.
+
+   Every value here is deliberate and defensible. Nothing is round because
+   round looked nice; the radius scale is continuous with surface size, which
+   is why a chip and a sheet do not share a radius.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  color-scheme: light;
+	color-scheme: light;
 
-  /* Substrate — Swiss Industrial Print (light) */
-  --paper:      #f4f4f0;   /* unbleached documentation paper */
-  --paper-sunk: #eae8e3;   /* recessed panel / table stripe  */
-  --paper-ink:  #e2e0da;   /* deepest paper tone             */
+	/* ─── Substrate ──────────────────────────────────────────────────────────
+	   Never pure white. A hair of blue keeps large light surfaces from
+	   glaring, and gives the translucent materials something to tint. */
+	--bg: #fbfbfd;
+	--bg-sunk: #f2f2f6;
+	--bg-raised: #ffffff;
 
-  /* Carbon ink — single cool-neutral gray family */
-  --ink:    #0a0a0a;
-  --ink-2:  #35352f;
-  --ink-3:  #6e6e67;
-  --ink-4:  #9b9b93;
+	/* ─── Text ramp ──────────────────────────────────────────────────────────
+	   Four steps, each a deliberate role: primary, secondary, tertiary,
+	   quaternary. Nothing picks a fifth gray inline. */
+	--text: #0b0b0f;
+	--text-2: #4a4a55;
+	--text-3: #74747f;
+	--text-4: #a0a0ab;
 
-  /* Hairlines */
-  --rule:        rgba(10, 10, 10, 0.16);
-  --rule-strong: rgba(10, 10, 10, 0.42);
-  --rule-heavy:  #0a0a0a;
+	/* ─── Separation ─────────────────────────────────────────────────────────
+	   Hairlines exist, but a scroll-edge fade is preferred wherever floating
+	   chrome actually overlaps content. */
+	--hairline: rgba(11, 11, 15, 0.08);
+	--hairline-strong: rgba(11, 11, 15, 0.14);
+	--border: rgba(11, 11, 15, 0.1);
 
-  /* The only accent */
-  --hazard:     #e61919;
-  --hazard-ink: #b31313;
+	/* ─── The one chromatic accent ───────────────────────────────────────────
+	   Focus rings, links, live indicators. Not decoration. */
+	--accent: #0a6cff;
+	--accent-soft: rgba(10, 108, 255, 0.12);
+	--accent-text: #0a5ad6;
 
-  /* Substrate-dependent effects. These flip in dark mode, so nothing
-     should hard-code a blend mode or an rgba(10,10,10,…) line again. */
-  --grid-line:  rgba(10, 10, 10, 0.045);  /* blueprint column guides */
-  --sheen:      rgba(10, 10, 10, 0.05);   /* skeleton sweep          */
-  --scrim:      rgba(10, 10, 10, 0.4);    /* modal backdrop          */
-  --grain-blend: multiply;                /* noise film              */
-  --grain-alpha: 0.33;
-  --plate-blend: multiply;                /* photographic print bed  */
-  --plate-filter: grayscale(1) contrast(1.06) brightness(1.16);
-  --mark-invert: 0;                       /* dark logo artwork        */
+	/* Primary action fill — inverts with the substrate, so the strongest
+	   control on the page is always maximum contrast against it. */
+	--fill: #0b0b0f;
+	--fill-text: #fbfbfd;
 
-  /* Type */
-  --font-display: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif;
-  --font-mono:    'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+	/* ─── Status ─────────────────────────────────────────────────────────────
+	   Semantic only. Never used to brand or decorate. */
+	--live: #1a9d4b;
+	--warn: #c77700;
+	--bad: #d6303a;
 
-  /* Measure */
-  --gutter: clamp(1rem, 4vw, 2.5rem);
-  --shell:  1440px;
+	/* ─── Domain tints ───────────────────────────────────────────────────────
+	   The four practice areas. Used *only* as a small identifying dot or a
+	   label tint — never as a surface, a gradient or a second accent. Four
+	   domains is the substance of this portfolio, so making them
+	   distinguishable at a glance is wayfinding, not decoration. */
+	--d-ai: #7b61ff;
+	--d-ml: #0a8f8f;
+	--d-ios: #e07a1f;
+	--d-web: #2b73d9;
 
-  /* Systemic z-index scale — no arbitrary values anywhere */
-  --z-base:    0;
-  --z-raised:  10;
-  --z-nav:     20;
-  --z-overlay: 30;
-  --z-modal:   40;
-  --z-grain:   50;
+	/* ─── Materials ──────────────────────────────────────────────────────────
+	   Three weights. Heavier separates structural regions, lighter draws
+	   attention to interactive elements. A light material is never stacked on
+	   another light material — legibility collapses. */
+	--mat-thin: rgba(255, 255, 255, 0.62);
+	--mat-regular: rgba(249, 249, 251, 0.76);
+	--mat-thick: rgba(244, 244, 248, 0.9);
+	--mat-edge: rgba(255, 255, 255, 0.7); /* bright top edge: light caught on glass */
+	--blur-thin: 14px;
+	--blur-regular: 24px;
+	--blur-thick: 40px;
+	--scrim: rgba(11, 11, 15, 0.28);
 
-  /* Motion — weighted, never linear */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-mech: cubic-bezier(0.83, 0, 0.17, 1);
+	/* ─── Elevation ──────────────────────────────────────────────────────────
+	   Bigger surfaces read as thicker: more blur, deeper shadow. Two layers
+	   each — a tight contact shadow plus a wide ambient one, which is what
+	   keeps a surface from looking pasted on. */
+	--e1: 0 1px 2px rgba(11, 11, 15, 0.05), 0 2px 8px rgba(11, 11, 15, 0.04);
+	--e2: 0 2px 4px rgba(11, 11, 15, 0.06), 0 8px 24px rgba(11, 11, 15, 0.07);
+	--e3: 0 4px 8px rgba(11, 11, 15, 0.07), 0 20px 56px rgba(11, 11, 15, 0.12);
+	--e-ring: inset 0 0 0 0.5px rgba(11, 11, 15, 0.07);
+
+	/* ─── Radii ──────────────────────────────────────────────────────────────
+	   Continuous with surface size. A 10px radius on a 600px panel looks
+	   mean; a 28px radius on a chip looks like a pill by accident. */
+	--r-xs: 7px;
+	--r-sm: 11px;
+	--r-md: 16px;
+	--r-lg: 22px;
+	--r-xl: 30px;
+	--r-full: 999px;
+
+	/* ─── Type ───────────────────────────────────────────────────────────────
+	   The platform face first: it already ships optical sizing, tracking
+	   tables and legibility tuning that no webfont round-trip improves on.
+	   Inter is the fallback for everything that isn't an Apple platform. */
+	--font: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter',
+		'Segoe UI', Roboto, system-ui, sans-serif;
+	--font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+
+	/* ─── Measure ────────────────────────────────────────────────────────────
+	   Spacing in rem so a reader's larger text setting scales the layout with
+	   the text instead of bursting it. */
+	--gutter: clamp(1.25rem, 5vw, 3rem);
+	--shell: 76rem;
+	--shell-wide: 90rem;
+
+	/* ─── Layers ─────────────────────────────────────────────────────────────
+	   A named scale. No component invents a z-index. */
+	--z-base: 0;
+	--z-raised: 10;
+	--z-nav: 20;
+	--z-overlay: 30;
+	--z-sheet: 40;
+	--z-modal: 50;
+
+	/* ─── Easing ─────────────────────────────────────────────────────────────
+	   For the non-interruptible cases only. `--ease-out` is the house curve;
+	   `--ease-in` is its deliberate inverse, so a reversible transition
+	   retraces its own path instead of taking a different one home. */
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+	--ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
-   DARK SUBSTRATE — "Tactical Telemetry"
-   Not an inversion of the paper theme: a deactivated-CRT ground with white
-   phosphor type and the same single hazard accent, brightened for contrast
-   against black. Defined once and shared by the system-preference and the
-   explicit-override selectors below.
-   ────────────────────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════════
+   DARK SUBSTRATE
+   Not an inversion. On dark, materials tint *down* rather than up, shadows
+   stop carrying separation (nothing is darker than the ground) so a bright
+   hairline ring takes over, and the accent lifts for contrast.
+   ══════════════════════════════════════════════════════════════════════════════ */
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
 
-    --paper:      #0a0a0a;   /* deactivated CRT — never pure #000 */
-    --paper-sunk: #151515;
-    --paper-ink:  #1e1e1e;
+		--bg: #08090c;
+		--bg-sunk: #050608;
+		--bg-raised: #12141a;
 
-    --ink:    #eaeaea;       /* white phosphor */
-    --ink-2:  #b4b4ae;
-    --ink-3:  #86867f;
-    --ink-4:  #5d5d57;
+		--text: #f6f7f9;
+		--text-2: #a9adb8;
+		--text-3: #777c88;
+		--text-4: #52576180;
 
-    --rule:        rgba(234, 234, 234, 0.16);
-    --rule-strong: rgba(234, 234, 234, 0.38);
-    --rule-heavy:  #eaeaea;
+		--hairline: rgba(255, 255, 255, 0.08);
+		--hairline-strong: rgba(255, 255, 255, 0.16);
+		--border: rgba(255, 255, 255, 0.12);
 
-    --hazard:     #ff2a2a;
-    --hazard-ink: #ff5c5c;
+		--accent: #4d97ff;
+		--accent-soft: rgba(77, 151, 255, 0.16);
+		--accent-text: #7db4ff;
 
-    --grid-line:  rgba(234, 234, 234, 0.05);
-    --sheen:      rgba(234, 234, 234, 0.06);
-    --scrim:      rgba(0, 0, 0, 0.6);
-    --grain-blend: screen;
-    --grain-alpha: 0.22;
-    --plate-blend: screen;
-    --plate-filter: grayscale(1) contrast(1.15) brightness(0.92);
-    --mark-invert: 1;
-  }
+		--fill: #f6f7f9;
+		--fill-text: #08090c;
+
+		--live: #32d365;
+		--warn: #ffb340;
+		--bad: #ff5a5f;
+
+		--d-ai: #a08cff;
+		--d-ml: #3fc5c5;
+		--d-ios: #ff9f45;
+		--d-web: #65a5ff;
+
+		--mat-thin: rgba(28, 30, 38, 0.6);
+		--mat-regular: rgba(20, 22, 29, 0.74);
+		--mat-thick: rgba(12, 13, 18, 0.88);
+		--mat-edge: rgba(255, 255, 255, 0.1);
+		--scrim: rgba(0, 0, 0, 0.55);
+
+		/* Shadow alone cannot separate a surface from a near-black ground, so
+		   each elevation carries a bright inner ring that does the work. */
+		--e1: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+		--e2: 0 4px 16px rgba(0, 0, 0, 0.55), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+		--e3: 0 16px 48px rgba(0, 0, 0, 0.65), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+		--e-ring: inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+	}
 }
 
+/* Explicit override. Duplicated rather than @applied so the cascade order is
+   obvious and a pinned theme can never lose to the media query. */
 :root[data-theme='dark'] {
-  color-scheme: dark;
+	color-scheme: dark;
 
-  --paper:      #0a0a0a;
-  --paper-sunk: #151515;
-  --paper-ink:  #1e1e1e;
+	--bg: #08090c;
+	--bg-sunk: #050608;
+	--bg-raised: #12141a;
 
-  --ink:    #eaeaea;
-  --ink-2:  #b4b4ae;
-  --ink-3:  #86867f;
-  --ink-4:  #5d5d57;
+	--text: #f6f7f9;
+	--text-2: #a9adb8;
+	--text-3: #777c88;
+	--text-4: #525761;
 
-  --rule:        rgba(234, 234, 234, 0.16);
-  --rule-strong: rgba(234, 234, 234, 0.38);
-  --rule-heavy:  #eaeaea;
+	--hairline: rgba(255, 255, 255, 0.08);
+	--hairline-strong: rgba(255, 255, 255, 0.16);
+	--border: rgba(255, 255, 255, 0.12);
 
-  --hazard:     #ff2a2a;
-  --hazard-ink: #ff5c5c;
+	--accent: #4d97ff;
+	--accent-soft: rgba(77, 151, 255, 0.16);
+	--accent-text: #7db4ff;
 
-  --grid-line:  rgba(234, 234, 234, 0.05);
-  --sheen:      rgba(234, 234, 234, 0.06);
-  --scrim:      rgba(0, 0, 0, 0.6);
-  --grain-blend: screen;
-  --grain-alpha: 0.22;
-  --plate-blend: screen;
-  --plate-filter: grayscale(1) contrast(1.15) brightness(0.92);
-  --mark-invert: 1;
+	--fill: #f6f7f9;
+	--fill-text: #08090c;
+
+	--live: #32d365;
+	--warn: #ffb340;
+	--bad: #ff5a5f;
+
+	--d-ai: #a08cff;
+	--d-ml: #3fc5c5;
+	--d-ios: #ff9f45;
+	--d-web: #65a5ff;
+
+	--mat-thin: rgba(28, 30, 38, 0.6);
+	--mat-regular: rgba(20, 22, 29, 0.74);
+	--mat-thick: rgba(12, 13, 18, 0.88);
+	--mat-edge: rgba(255, 255, 255, 0.1);
+	--scrim: rgba(0, 0, 0, 0.55);
+
+	--e1: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+	--e2: 0 4px 16px rgba(0, 0, 0, 0.55), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+	--e3: 0 16px 48px rgba(0, 0, 0, 0.65), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+	--e-ring: inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════════════════════════════ */
 
 * {
-  box-sizing: border-box;
-  border-radius: 0 !important; /* mechanical rigidity: 90° corners only */
+	box-sizing: border-box;
 }
 
 html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+	-webkit-text-size-adjust: 100%;
+	/* Scroll-snap and smooth scrolling fight each other on trackpads; the
+	   in-page nav animates scroll itself so it can be interrupted. */
+	scroll-behavior: auto;
 }
 
 body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 1.5;
-  overflow-x: hidden;
-  font-variant-numeric: tabular-nums;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font);
+	font-size: 1rem;
+	line-height: 1.5;
+	font-optical-sizing: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	overflow-x: clip;
+	/* Theme changes are eased: an abrupt full-viewport brightness jump is
+	   exactly the kind of flash the accessibility guidance warns about. */
+	transition: background-color 400ms var(--ease-soft), color 400ms var(--ease-soft);
+}
+
+img,
+svg,
+video {
+	display: block;
+	max-width: 100%;
 }
 
 ::selection {
-  background: var(--hazard);
-  color: var(--paper);
+	background: var(--accent-soft);
+	color: var(--text);
 }
 
-/* Thin mechanical scrollbar */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--paper-sunk); }
-::-webkit-scrollbar-thumb { background: var(--ink); border: 3px solid var(--paper-sunk); }
-::-webkit-scrollbar-thumb:hover { background: var(--hazard); }
+/* ─── Focus ────────────────────────────────────────────────────────────────── */
 
-/* ─── Accessibility ────────────────────────────────────────────────────────── */
+:focus {
+	outline: none;
+}
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+	border-radius: var(--r-xs);
+}
 
 .skip-link {
-  position: absolute;
-  left: -9999px;
-  top: 0;
-  z-index: var(--z-modal);
-  padding: 0.75rem 1.25rem;
-  background: var(--ink);
-  color: var(--paper);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-decoration: none;
+	position: fixed;
+	top: 0.75rem;
+	left: 0.75rem;
+	z-index: var(--z-modal);
+	padding: 0.625rem 1rem;
+	border-radius: var(--r-sm);
+	background: var(--fill);
+	color: var(--fill-text);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	text-decoration: none;
+	transform: translateY(-200%);
+	transition: transform 220ms var(--ease-out);
 }
-.skip-link:focus { left: 0; }
+.skip-link:focus-visible {
+	transform: translateY(0);
+}
 
-:focus-visible {
-  outline: 2px solid var(--hazard);
-  outline-offset: 3px;
+.sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
+
+@supports selector(::-webkit-scrollbar) {
+	::-webkit-scrollbar {
+		width: 11px;
+		height: 11px;
+	}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		background: var(--hairline-strong);
+		border: 3px solid transparent;
+		background-clip: content-box;
+		border-radius: var(--r-full);
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: var(--text-4);
+		background-clip: content-box;
+	}
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    TYPOGRAPHY
+   Tracking is size-specific — never one letter-spacing for every size. Large
+   text reads too loose as it grows, so it tightens; small text needs a touch
+   of positive tracking to stay legible. Leading moves inversely to size.
+   Hierarchy is built from weight + size + leading as a set, not size alone.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* Macro — monolithic structural headers. Uppercase, tight, compressed. */
-.t-macro {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(3.25rem, 11vw, 11rem);
-  line-height: 0.85;
-  letter-spacing: -0.045em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-wrap: balance;
+.t-hero {
+	font-size: clamp(2.75rem, 9vw, 6.5rem);
+	font-weight: 680;
+	line-height: 0.98;
+	letter-spacing: -0.038em; /* tightest: the largest text on the site */
+	text-wrap: balance;
+	margin: 0;
 }
 
 .t-display {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(2rem, 5.5vw, 4.25rem);
-  line-height: 0.9;
-  letter-spacing: -0.035em;
-  text-transform: uppercase;
-  text-wrap: balance;
+	font-size: clamp(2rem, 4.6vw, 3.25rem);
+	font-weight: 660;
+	line-height: 1.06;
+	letter-spacing: -0.028em;
+	text-wrap: balance;
+	margin: 0;
+}
+
+.t-title {
+	font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+	font-weight: 640;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+	margin: 0;
 }
 
 .t-head {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(1.05rem, 2vw, 1.4rem);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
+	font-size: 1.0625rem;
+	font-weight: 600;
+	line-height: 1.35;
+	letter-spacing: -0.011em;
+	margin: 0;
 }
 
-/* Micro — telemetry. All metadata, labels, nav, coordinates. */
-.t-micro {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.t-micro-ink { color: var(--ink); }
-
-/* Legacy alias — existing markup uses .sec-num */
-.sec-num {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-/* Body copy — measured to ~68 characters */
+/* Body sits near zero tracking — it needs neither tightening nor opening. */
 .t-body {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 1.75;
-  color: var(--ink-2);
-  max-width: 68ch;
-  text-wrap: pretty;
+	font-size: 1rem;
+	line-height: 1.65;
+	letter-spacing: -0.003em;
+	color: var(--text-2);
+	max-width: 62ch;
+	text-wrap: pretty;
+	margin: 0;
 }
 
 .t-lead {
-  font-family: var(--font-mono);
-  font-size: clamp(0.95rem, 1.5vw, 1.0625rem);
-  line-height: 1.65;
-  color: var(--ink-2);
-  max-width: 62ch;
-  text-wrap: pretty;
+	font-size: clamp(1.0625rem, 1.6vw, 1.3125rem);
+	font-weight: 420;
+	line-height: 1.5;
+	letter-spacing: -0.012em;
+	color: var(--text-2);
+	max-width: 54ch;
+	text-wrap: pretty;
+	margin: 0;
 }
 
-/* Index numerals — oversized, structural */
-.t-idx {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--ink-4);
-  font-variant-numeric: tabular-nums;
+.t-small {
+	font-size: 0.875rem;
+	line-height: 1.5;
+	letter-spacing: 0;
+	color: var(--text-3);
+	margin: 0;
 }
 
-.t-data {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  color: var(--ink-2);
+/* Smallest type gets *positive* tracking — the one place it opens up. */
+.t-label {
+	font-size: 0.75rem;
+	font-weight: 560;
+	line-height: 1.3;
+	letter-spacing: 0.015em;
+	color: var(--text-3);
+	margin: 0;
+}
+
+.t-mono {
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0;
+	color: var(--text-3);
+}
+
+/* Section eyebrow: the smallest, most structural label on the page. */
+.t-eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 580;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-3);
+	margin: 0;
+}
+
+/* Vibrancy: text sitting on a translucent material cannot be a flat mid-gray —
+   the background moves under it. It gets more contrast, a touch more weight
+   and a hair of tracking. Colour goes on a solid layer, never here. */
+.on-material {
+	color: var(--text);
+	font-weight: 520;
+	letter-spacing: 0.004em;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   LAYOUT — the blueprint grid
+   LAYOUT
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .shell {
-  width: 100%;
-  max-width: var(--shell);
-  margin-inline: auto;
-  padding-inline: var(--gutter);
+	width: 100%;
+	max-width: var(--shell);
+	margin-inline: auto;
+	padding-inline: var(--gutter);
+}
+.shell-wide {
+	max-width: var(--shell-wide);
 }
 
-/* Section: optically adjusted vertical padding (bottom slightly heavier) */
-.band {
-  padding-top: clamp(4rem, 9vh, 7rem);
-  padding-bottom: clamp(4.75rem, 11vh, 8.5rem);
-  border-top: 1px solid var(--rule);
-  position: relative;
+.section {
+	position: relative;
+	padding-block: clamp(4.5rem, 11vh, 8.5rem);
+	scroll-margin-top: 6rem; /* floating chrome must not cover an anchored heading */
 }
 
-/* Section header: hazard bar + index + title, left-anchored */
-.band-head {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.875rem;
-  align-items: baseline;
-  margin-bottom: clamp(2rem, 5vh, 3.5rem);
+.section-head {
+	display: flex;
+	flex-direction: column;
+	gap: 0.875rem;
+	margin-bottom: clamp(2.25rem, 5vh, 3.5rem);
+	max-width: 46rem;
 }
-
-.band-rule {
-  height: 1px;
-  background: var(--rule);
-  border: 0;
-  margin: 0;
-}
-
-.band-rule-heavy {
-  height: 3px;
-  background: var(--ink);
-  border: 0;
-  margin: 0;
-}
-
-/* Razor-thin dividing lines via grid gap over an ink parent */
-.grid-hairline {
-  display: grid;
-  gap: 1px;
-  background: var(--rule);
-}
-.grid-hairline > * { background: var(--paper); }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   COMPONENTS
+   MATERIALS
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Buttons: squared, bordered, mechanical press ─────────────────────────── */
+/* Floating chrome. Content scrolls underneath; this never occupies a reserved
+   strip of the layout. */
+.material {
+	background: var(--mat-regular);
+	-webkit-backdrop-filter: blur(var(--blur-regular)) saturate(180%);
+	backdrop-filter: blur(var(--blur-regular)) saturate(180%);
+	border: 0.5px solid var(--border);
+	/* The bright top edge is light catching the leading face of the glass.
+	   Without it a translucent panel reads as a flat tinted rectangle. */
+	box-shadow: var(--e2), inset 0 0.5px 0 var(--mat-edge);
+}
+
+.material-thin {
+	background: var(--mat-thin);
+	-webkit-backdrop-filter: blur(var(--blur-thin)) saturate(160%);
+	backdrop-filter: blur(var(--blur-thin)) saturate(160%);
+}
+
+/* Large surfaces read as thicker glass: stronger blur, deeper shadow. */
+.material-thick {
+	background: var(--mat-thick);
+	-webkit-backdrop-filter: blur(var(--blur-thick)) saturate(190%);
+	backdrop-filter: blur(var(--blur-thick)) saturate(190%);
+	box-shadow: var(--e3), inset 0 0.5px 0 var(--mat-edge);
+}
+
+/* Solid card. The default content surface — most content does not need glass,
+   and using it everywhere would flatten the hierarchy glass exists to create. */
+.card {
+	position: relative;
+	background: var(--bg-raised);
+	border-radius: var(--r-lg);
+	box-shadow: var(--e1), var(--e-ring);
+	overflow: hidden;
+}
+
+/* Pointer-tracked highlight. Pure paint: no layout, no compositing surprise.
+   Falls back to invisible when the action hasn't set --px/--py. */
+.lume::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+	opacity: 0;
+	background: radial-gradient(
+		16rem circle at var(--px, 50%) var(--py, 50%),
+		var(--accent-soft),
+		transparent 70%
+	);
+	transition: opacity 320ms var(--ease-soft);
+}
+.lume:hover::after {
+	opacity: 1;
+}
+
+/* Scroll-edge effect: where floating chrome overlaps content, content fades
+   out beneath it instead of being cut by a 1px divider. */
+.scroll-edge {
+	-webkit-mask-image: linear-gradient(to bottom, transparent, #000 2.5rem);
+	mask-image: linear-gradient(to bottom, transparent, #000 2.5rem);
+}
+
+.hairline {
+	height: 1px;
+	border: 0;
+	margin: 0;
+	background: var(--hairline);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CONTROLS
+   Press feedback is a spring applied by the `press` action, not a CSS
+   transition — a press that gets interrupted has to stay continuous. The
+   :active rule below is the reduced-motion and no-JS fallback.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 0.75rem 1rem;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  background: transparent;
-  border: 1px solid var(--rule-strong);
-  color: var(--ink);
-  cursor: pointer;
-  text-decoration: none;
-  transition:
-    background-color 220ms var(--ease-out),
-    color 220ms var(--ease-out),
-    border-color 220ms var(--ease-out),
-    transform 120ms var(--ease-out);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.6875rem 1.125rem;
+	border-radius: var(--r-full);
+	border: 0.5px solid var(--border);
+	background: var(--bg-raised);
+	color: var(--text);
+	font-family: inherit;
+	font-size: 0.9375rem;
+	font-weight: 560;
+	letter-spacing: -0.008em;
+	line-height: 1;
+	text-decoration: none;
+	cursor: pointer;
+	white-space: nowrap;
+	box-shadow: var(--e1);
+	/* transform is owned by the spring; never transition it here or the two
+	   fight and the press stutters. */
+	transition: background-color 200ms var(--ease-soft), border-color 200ms var(--ease-soft),
+		color 200ms var(--ease-soft), box-shadow 200ms var(--ease-soft);
+	-webkit-tap-highlight-color: transparent;
 }
 .btn:hover {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-.btn:active { transform: translateY(1px); }
-
-.btn-hazard {
-  background: var(--hazard);
-  border-color: var(--hazard);
-  color: var(--paper);
-}
-.btn-hazard:hover {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+	border-color: var(--hairline-strong);
+	box-shadow: var(--e2);
 }
 
-.btn[aria-disabled='true'],
-.btn:disabled {
-  opacity: 0.4;
-  pointer-events: none;
+.btn-primary {
+	background: var(--fill);
+	border-color: transparent;
+	color: var(--fill-text);
+}
+.btn-primary:hover {
+	background: var(--fill);
+	opacity: 0.9;
 }
 
-/* ─── Tag: square spec chip, no pill ──────────────────────────────────────── */
-.tag {
-  display: inline-block;
-  padding: 3px 7px;
-  border: 1px solid var(--rule);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  white-space: nowrap;
-  transition:
-    color 200ms var(--ease-out),
-    border-color 200ms var(--ease-out),
-    background-color 200ms var(--ease-out);
+.btn-quiet {
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+	color: var(--text-2);
 }
-.tag:hover {
-  color: var(--paper);
-  background: var(--ink);
-  border-color: var(--ink);
+.btn-quiet:hover {
+	background: var(--bg-sunk);
+	border-color: transparent;
+	box-shadow: none;
+	color: var(--text);
 }
 
-/* ─── Data row: the primary content pattern (replaces cards) ──────────────── */
-.row {
-  display: grid;
-  grid-template-columns: 3.5rem 1fr auto;
-  gap: 1rem 1.25rem;
-  align-items: start;
-  padding: 1.5rem 0.75rem 1.5rem 0.5rem;
-  border-bottom: 1px solid var(--rule);
-  position: relative;
-  text-decoration: none;
-  color: inherit;
-  transition: background-color 240ms var(--ease-out);
-}
-.row:first-child { border-top: 1px solid var(--rule); }
-.row:hover { background: var(--paper-sunk); }
-
-/* Hazard bar slides in from the left edge on hover */
-.row::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--hazard);
-  transform: scaleY(0);
-  transform-origin: top;
-  transition: transform 280ms var(--ease-mech);
-}
-.row:hover::before { transform: scaleY(1); }
-
-.row:hover .row-idx { color: var(--hazard); }
-
-@media (max-width: 640px) {
-  .row {
-    grid-template-columns: 1fr;
-    gap: 0.625rem;
-  }
+.btn-sm {
+	padding: 0.5rem 0.875rem;
+	font-size: 0.875rem;
 }
 
-/* ─── Marquee ──────────────────────────────────────────────────────────────── */
-.marquee-outer {
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+.btn:disabled,
+.btn[aria-disabled='true'] {
+	opacity: 0.4;
+	pointer-events: none;
 }
-.marquee-track {
-  display: flex;
-  align-items: center;
-  gap: 1.75rem;
-  width: max-content;
-  will-change: transform;
+
+/* No-JS / reduced-motion press feedback. */
+@media (prefers-reduced-motion: reduce) {
+	.btn:active {
+		background: var(--bg-sunk);
+	}
+}
+
+/* ─── Chip ─────────────────────────────────────────────────────────────────── */
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.25rem 0.625rem;
+	border-radius: var(--r-full);
+	border: 0.5px solid var(--border);
+	background: var(--bg-sunk);
+	color: var(--text-2);
+	font-size: 0.78125rem;
+	font-weight: 520;
+	letter-spacing: 0.004em;
+	white-space: nowrap;
+}
+
+.chip-dot {
+	width: 0.4375rem;
+	height: 0.4375rem;
+	border-radius: var(--r-full);
+	background: currentColor;
+	flex-shrink: 0;
+}
+
+/* Live status. The pulse is a slow opacity breath on a small element — not a
+   full-surface oscillation, which is the thing to avoid near 0.2Hz. */
+.chip-live {
+	color: var(--text);
+	border-color: color-mix(in srgb, var(--live) 40%, transparent);
+	background: color-mix(in srgb, var(--live) 12%, transparent);
+}
+.chip-live .chip-dot {
+	background: var(--live);
+	animation: breathe 2.4s var(--ease-soft) infinite;
+}
+@keyframes breathe {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.45;
+		transform: scale(0.82);
+	}
+}
+
+/* ─── Segmented control ────────────────────────────────────────────────────── */
+
+.segmented {
+	display: inline-flex;
+	position: relative;
+	padding: 0.1875rem;
+	border-radius: var(--r-full);
+	background: var(--bg-sunk);
+	border: 0.5px solid var(--border);
+}
+
+.segmented-thumb {
+	position: absolute;
+	top: 0.1875rem;
+	bottom: 0.1875rem;
+	border-radius: var(--r-full);
+	background: var(--bg-raised);
+	box-shadow: var(--e1);
+	/* Driven by a spring from JS; left/width are written as inline styles. */
+	will-change: transform, width;
+	pointer-events: none;
+}
+
+.segment {
+	position: relative;
+	z-index: 1;
+	appearance: none;
+	border: 0;
+	background: transparent;
+	padding: 0.4375rem 0.875rem;
+	border-radius: var(--r-full);
+	font-family: inherit;
+	font-size: 0.84375rem;
+	font-weight: 540;
+	letter-spacing: 0.002em;
+	color: var(--text-3);
+	cursor: pointer;
+	white-space: nowrap;
+	transition: color 200ms var(--ease-soft);
+	-webkit-tap-highlight-color: transparent;
+}
+.segment[aria-selected='true'],
+.segment[aria-pressed='true'] {
+	color: var(--text);
+}
+
+/* ─── Link ─────────────────────────────────────────────────────────────────── */
+
+.link {
+	color: var(--text);
+	text-decoration: none;
+	background-image: linear-gradient(currentColor, currentColor);
+	background-repeat: no-repeat;
+	background-position: 0 100%;
+	background-size: 100% 1px;
+	transition: color 200ms var(--ease-soft), background-size 280ms var(--ease-out);
+}
+.link:hover {
+	color: var(--accent-text);
+	background-size: 100% 1.5px;
+}
+
+.link-quiet {
+	color: var(--text-2);
+	background-size: 0% 1px;
+}
+.link-quiet:hover {
+	color: var(--text);
+	background-size: 100% 1px;
+}
+
+/* ─── Field ────────────────────────────────────────────────────────────────── */
+
+.field {
+	width: 100%;
+	padding: 0.75rem 0.9375rem;
+	border-radius: var(--r-sm);
+	border: 0.5px solid var(--border);
+	background: var(--bg-raised);
+	color: var(--text);
+	font-family: inherit;
+	font-size: 0.9375rem;
+	line-height: 1.45;
+	transition: border-color 180ms var(--ease-soft), box-shadow 180ms var(--ease-soft);
+}
+.field::placeholder {
+	color: var(--text-4);
+}
+.field:focus {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3.5px var(--accent-soft);
+}
+.field:disabled {
+	opacity: 0.5;
+}
+
+/* ─── Meter ────────────────────────────────────────────────────────────────── */
+
+.meter {
+	height: 3px;
+	border-radius: var(--r-full);
+	background: var(--hairline);
+	overflow: hidden;
+}
+.meter-fill {
+	height: 100%;
+	border-radius: inherit;
+	background: var(--text-2);
+	transform-origin: left center;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   TEXTURE — analog degradation
+   SKELETON
+   Shape-matched placeholders, not a spinner: the layout must not jump when the
+   real content lands.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* Global mechanical noise. Fixed + pointer-events:none, never on a scroller. */
-.grain {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-grain);
-  pointer-events: none;
-  opacity: var(--grain-alpha);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
-  mix-blend-mode: var(--grain-blend);
-}
-
-/* Halftone dot matrix — applied behind macro type and imagery */
-.halftone {
-  background-image: radial-gradient(var(--rule-strong) 0.75px, transparent 0.75px);
-  background-size: 5px 5px;
-}
-
-/* Hazard stripes — thick diagonal warning bar */
-.hazard-stripes {
-  background-image: repeating-linear-gradient(
-    45deg,
-    var(--ink) 0 8px,
-    transparent 8px 16px
-  );
-}
-
-/* Registration crosshair at grid intersections */
-.crosshair {
-  position: relative;
-}
-.crosshair::before,
-.crosshair::after {
-  content: '';
-  position: absolute;
-  background: var(--rule-strong);
-  pointer-events: none;
-}
-.crosshair::before {
-  left: -4px; top: 50%;
-  width: 9px; height: 1px;
-  transform: translateY(-50%);
-}
-.crosshair::after {
-  top: -4px; left: 50%;
-  width: 1px; height: 9px;
-  transform: translateX(-50%);
-}
-
-/* Vertical barcode rule */
-.barcode {
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--ink) 0 1px,
-    transparent 1px 3px,
-    var(--ink) 3px 5px,
-    transparent 5px 9px
-  );
-}
-
-/* Print-plate duotone for photography */
-.plate {
-  filter: var(--plate-filter);
-  mix-blend-mode: var(--plate-blend);
-}
-
-/* ─── Link with mechanical underline wipe ─────────────────────────────────── */
-.link {
-  position: relative;
-  color: var(--ink);
-  text-decoration: none;
-  background-image: linear-gradient(var(--hazard), var(--hazard));
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-  background-size: 0% 1px;
-  transition: background-size 260ms var(--ease-out), color 260ms var(--ease-out);
-}
-.link:hover {
-  background-size: 100% 1px;
-  color: var(--hazard);
-}
-
-/* ─── Scroll cue ───────────────────────────────────────────────────────────── */
-@keyframes scroll-cue {
-  0%   { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-.scroll-cue { animation: scroll-cue 2.4s var(--ease-mech) infinite; }
-
-@keyframes blink {
-  0%, 49%  { opacity: 1; }
-  50%, 100%{ opacity: 0; }
-}
-.blink { animation: blink 1.1s step-end infinite; }
-
-/* ─── Skeleton loader (shape-matched, not a spinner) ──────────────────────── */
-@keyframes sweep {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
 .skel {
-  position: relative;
-  overflow: hidden;
-  background: var(--paper-sunk);
+	position: relative;
+	overflow: hidden;
+	background: var(--bg-sunk);
+	border-radius: var(--r-sm);
 }
 .skel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, var(--sheen), transparent);
-  animation: sweep 1.4s var(--ease-out) infinite;
+	content: '';
+	position: absolute;
+	inset: 0;
+	transform: translateX(-100%);
+	background: linear-gradient(90deg, transparent, var(--hairline), transparent);
+	animation: sweep 1.5s var(--ease-soft) infinite;
+}
+@keyframes sweep {
+	to {
+		transform: translateX(100%);
+	}
 }
 
-/* Clip wrapper for GSAP SplitText line reveals.
-   The padding/negative-margin pair buys horizontal slack so a heavy glyph's
-   right side bearing is never shaved by `overflow: hidden`, which is only
-   there to mask the vertical slide-in. */
-.clip {
-  overflow: hidden;
-  display: block;
-  padding-right: 0.12em;
-  margin-right: -0.12em;
+/* ══════════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY PREFERENCES
+   Three independent signals, each handled on its own terms.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Reduced motion: keep the feedback, drop the vestibular part. Opacity and
+   colour changes survive because they carry meaning; travel and overshoot do
+   not. Not a blanket `animation: none` — that would remove status indicators. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 180ms !important;
+	}
+	.chip-live .chip-dot {
+		animation: none;
+		opacity: 1;
+	}
+	.skel::after {
+		animation: none;
+	}
+}
+
+/* Reduced transparency: frostier, not blurrier. Raise opacity to near-solid
+   and drop the blur entirely — the blur is the expensive part and the whole
+   point was the translucency. */
+@media (prefers-reduced-transparency: reduce) {
+	.material,
+	.material-thin,
+	.material-thick {
+		background: var(--bg-raised);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+		border-color: var(--hairline-strong);
+	}
+}
+
+/* More contrast: solid grounds and defined borders. */
+@media (prefers-contrast: more) {
+	:root {
+		--text-2: var(--text);
+		--text-3: #4a4a55;
+		--border: rgba(11, 11, 15, 0.4);
+		--hairline: rgba(11, 11, 15, 0.3);
+	}
+	:root[data-theme='dark'] {
+		--text-2: var(--text);
+		--text-3: #c9ccd4;
+		--border: rgba(255, 255, 255, 0.45);
+		--hairline: rgba(255, 255, 255, 0.32);
+	}
+	.material,
+	.material-thin,
+	.material-thick {
+		background: var(--bg-raised);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+	.btn,
+	.chip,
+	.card {
+		border: 1px solid var(--border);
+	}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PRINT — a portfolio gets printed to PDF and attached to applications.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@media print {
+	:root {
+		--bg: #fff;
+		--bg-raised: #fff;
+		--text: #000;
+		--text-2: #222;
+	}
+	.no-print {
+		display: none !important;
+	}
+	.card {
+		box-shadow: none;
+		border: 1px solid #ccc;
+		break-inside: avoid;
+	}
+	.section {
+		padding-block: 1.5rem;
+	}
 }

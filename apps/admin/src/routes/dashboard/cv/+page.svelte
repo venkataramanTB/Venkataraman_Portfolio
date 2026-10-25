@@ -1,4 +1,5 @@
 <script>
+  import Icon from '$lib/components/Icon.svelte';
   import { onMount } from 'svelte';
   import { api } from '$lib/api.js';
   import { toast } from '$lib/stores/toast.js';
@@ -117,20 +118,23 @@
 
   <!-- Result -->
   {#if result}
-    <div class="glass rounded-2xl border border-primary/20 p-6 space-y-4">
-      <p class="font-semibold text-ink text-sm">✨ Import complete</p>
+    <div class="panel p-6 space-y-4">
+      <p class="done">
+        <Icon name="check" size={16} />
+        <span>Import complete</span>
+      </p>
       <div class="grid grid-cols-3 gap-3">
         {#each [
-          ['Skills', result.skills_created, '⚡'],
-          ['Experiences', result.experiences_created, '💼'],
-          ['Education', result.education_created, '🎓'],
-          ['Certificates', result.certificates_created, '🏅'],
-          ['Achievements', result.achievements_created, '🏆'],
-          ['Chunks', result.chunks_embedded || result.chunks_created || 0, '🔮'],
+          ['Skills', result.skills_created, 'stack'],
+          ['Experiences', result.experiences_created, 'work'],
+          ['Education', result.education_created, 'education'],
+          ['Certificates', result.certificates_created, 'verify'],
+          ['Achievements', result.achievements_created, 'achievements'],
+          ['Chunks', result.chunks_embedded || result.chunks_created || 0, 'document'],
         ] as [label, count, icon]}
-          <div class="glass rounded-xl p-3 border border-border text-center">
-            <p class="text-lg">{icon}</p>
-            <p class="text-xl font-black text-primary">{count}</p>
+          <div class="result-cell">
+            <span class="result-icon" aria-hidden="true"><Icon name={icon} size={16} /></span>
+            <p class="result-count">{count}</p>
             <p class="text-xs text-ink-3">{label}</p>
           </div>
         {/each}
@@ -185,3 +189,39 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .done {
+    display: flex;
+    align-items: center;
+    gap: 0.4375rem;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 560;
+    color: var(--live);
+  }
+
+  .result-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.875rem 0.5rem;
+    border-radius: var(--r-md);
+    border: 0.5px solid var(--border);
+    background: var(--bg-sunk);
+    text-align: center;
+  }
+  .result-icon {
+    color: var(--text-3);
+  }
+  .result-count {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 640;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+</style>

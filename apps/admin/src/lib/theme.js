@@ -41,7 +41,7 @@ function apply(mode) {
 
   // Keep the browser chrome in step with the substrate.
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', isDark ? '#0a0a0a' : '#f4f4f0');
+  if (meta) meta.setAttribute('content', isDark ? '#08090c' : '#fbfbfd');
 }
 
 export function setTheme(mode) {

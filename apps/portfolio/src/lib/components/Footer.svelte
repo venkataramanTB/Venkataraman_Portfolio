@@ -1,206 +1,203 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import { useGSAP } from '$lib/gsap.js';
-  import Icon from './Icon.svelte';
+	/**
+	 * Footer. Wayfinding, not decoration: it answers "where else can I go"
+	 * and "how do I get out of here" for a reader who reached the bottom.
+	 */
+	import { press } from '$lib/motion/gestures.js';
+	import { prefersReducedMotion } from '$lib/motion/spring.js';
+	import ThemeSwitch from './ThemeSwitch.svelte';
+	import Icon from './Icon.svelte';
 
-  export let profile     = null;
-  export let socialLinks = [];
+	export let profile = null;
+	export let socialLinks = [];
 
-  const year = new Date().getFullYear();
+	const SOCIAL_ICONS = {
+		github: 'github',
+		linkedin: 'linkedin',
+		twitter: 'x',
+		x: 'x',
+		email: 'mail',
+		mail: 'mail',
+		website: 'site'
+	};
 
-  // First name only, uppercased — the closing structural gesture of the page.
-  $: wordmark = (profile?.name ?? 'Venkataraman TB').trim().split(/\s+/)[0].toUpperCase();
-  const BUILT = 'SvelteKit · GSAP · FastAPI · Postgres';
+	const SECTIONS = [
+		{ id: 'practice', label: 'Practice' },
+		{ id: 'work', label: 'Work' },
+		{ id: 'experience', label: 'Experience' },
+		{ id: 'stack', label: 'Stack' },
+		{ id: 'credentials', label: 'Credentials' },
+		{ id: 'contact', label: 'Contact' }
+	];
 
+	const year = new Date().getFullYear();
 
-  const SOCIAL_ICON = {
-    github: 'github', linkedin: 'linkedin', email: 'mail', mail: 'mail',
-    twitter: 'link', x: 'link',
-  };
-  const socialIcon = (p) => SOCIAL_ICON[p?.toLowerCase()] ?? 'link';
+	$: name = profile?.name ?? 'Venkataraman TB';
 
-  let wordmarkEl;
-  let ctx;
-
-  onMount(async () => {
-    const g = await useGSAP();
-    if (!g) return;
-    const { gsap } = g;
-
-    ctx = gsap.context(() => {
-      // Oversized wordmark rises as the page bottoms out
-      gsap.from(wordmarkEl, {
-        yPercent: 22,
-        duration: 1,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: wordmarkEl, start: 'top 95%' },
-      });
-    });
-  });
-
-  onDestroy(() => { ctx?.revert(); });
+	function toTop() {
+		window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+	}
 </script>
 
-<footer class="foot">
-  <div class="shell">
-    <!-- Viewport-bleeding wordmark: the last structural gesture -->
-    <div class="wordmark-clip">
-      <!--
-        SVG rather than styled text: textLength + lengthAdjust force the
-        wordmark to fill the width exactly, so no glyph is ever clipped no
-        matter how long the name is. A font-size in vw cannot guarantee that.
-      -->
-      <svg
-        bind:this={wordmarkEl}
-        class="wordmark"
-        viewBox="0 0 1000 150"
-        preserveAspectRatio="xMinYMid meet"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <text
-          x="0"
-          y="118"
-          textLength="1000"
-          lengthAdjust="spacingAndGlyphs"
-          class="wordmark-text"
-        >{wordmark}</text>
-      </svg>
-    </div>
+<footer class="footer">
+	<div class="shell">
+		<div class="top">
+			<div class="brand">
+				<p class="t-title brand-name">{name}</p>
+				{#if profile?.tagline}
+					<p class="t-small brand-tag">{profile.tagline}</p>
+				{/if}
 
-    <hr class="band-rule-heavy" />
+				{#if socialLinks.length}
+					<ul class="socials">
+						{#each socialLinks as link}
+							<li>
+								<a
+									class="social"
+									href={link.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									aria-label={link.platform}
+									title={link.platform}
+									use:press={{ scale: 0.9 }}
+								>
+									<Icon name={SOCIAL_ICONS[link.platform?.toLowerCase()] ?? 'link'} size={17} />
+								</a>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
 
-    <div class="foot-grid">
-      <div class="foot-col">
-        <span class="t-micro">&#91; Index &#93;</span>
-        <nav class="foot-icons" aria-label="Footer">
-          <a href="#index" class="iconlink" aria-label="Top" title="Top">
-            <Icon name="arrow-up" size={16} /></a>
-          <a href="#work" class="iconlink" aria-label="Work" title="Work">
-            <Icon name="work" size={16} /></a>
-          <a href="#projects" class="iconlink" aria-label="Projects" title="Projects">
-            <Icon name="projects" size={16} /></a>
-          <a href="#contact" class="iconlink" aria-label="Contact" title="Contact">
-            <Icon name="contact" size={16} /></a>
-        </nav>
-      </div>
+			<nav class="links" aria-label="Footer">
+				<p class="t-label links-head">Sections</p>
+				<ul>
+					{#each SECTIONS as s}
+						<li><a class="link-quiet" href={`#${s.id}`}>{s.label}</a></li>
+					{/each}
+				</ul>
+			</nav>
 
-      {#if socialLinks.length}
-        <div class="foot-col">
-          <span class="t-micro">&#91; Elsewhere &#93;</span>
-          <nav class="foot-icons" aria-label="Social links">
-            {#each socialLinks as link}
-              <a href={link.url} target="_blank" rel="noopener noreferrer"
-                 class="iconlink" aria-label={link.platform} title={link.platform}>
-                <Icon name={socialIcon(link.platform)} size={16} />
-              </a>
-            {/each}
-          </nav>
-        </div>
-      {/if}
+			<div class="links">
+				<p class="t-label links-head">Elsewhere</p>
+				<ul>
+					{#if profile?.email}
+						<li><a class="link-quiet" href={`mailto:${profile.email}`}>Email</a></li>
+					{/if}
+					{#if profile?.resume_url}
+						<li>
+							<a class="link-quiet" href={profile.resume_url} target="_blank" rel="noopener noreferrer">
+								Résumé
+							</a>
+						</li>
+					{/if}
+					<!-- Project ids are database-assigned, so this points at the index
+					     rather than guessing one. -->
+					<li><a class="link-quiet" href="/#work">Case studies</a></li>
+				</ul>
+			</div>
+		</div>
 
-      <div class="foot-col">
-        <span class="t-micro">&#91; Build &#93;</span>
-        <p class="t-data foot-build">{BUILT}</p>
-      </div>
-    </div>
+		<hr class="hairline" />
 
-    <hr class="band-rule" />
+		<div class="bottom">
+			<p class="t-small copy">
+				© {year} {name}. Built with SvelteKit.
+			</p>
 
-    <div class="colophon">
-      <p class="t-micro">
-        &copy; {year} {profile?.name ?? 'Venkataraman TB'}
-        <span class="sep" aria-hidden="true">///</span>
-        All rights reserved
-      </p>
-      <p class="t-micro">
-        <span class="reg-mark" aria-hidden="true">&reg;</span>
-        Doc Rev 3.0
-        <span class="sep" aria-hidden="true">///</span>
-        Unit D-01
-      </p>
-    </div>
-  </div>
+			<div class="bottom-end no-print">
+				<ThemeSwitch />
+				<button class="btn btn-sm" on:click={toTop} use:press>
+					<Icon name="arrow-up" size={15} />
+					<span>Top</span>
+				</button>
+			</div>
+		</div>
+	</div>
 </footer>
 
 <style>
-  .foot {
-    padding-top: clamp(3rem, 8vh, 5rem);
-    padding-bottom: clamp(1.5rem, 4vh, 2.5rem);
-    border-top: 1px solid var(--rule);
-  }
+	.footer {
+		padding-top: clamp(3rem, 7vh, 5rem);
+		padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+		border-top: 1px solid var(--hairline);
+		background: var(--bg-sunk);
+	}
 
-  .wordmark-clip { overflow: hidden; }
-  .wordmark {
-    display: block;
-    width: 100%;
-    height: auto;
-    margin: 0 0 0.5rem;
-    will-change: transform;
-    user-select: none;
-  }
+	.top {
+		display: grid;
+		grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
+		gap: 2.5rem;
+		padding-bottom: 2.5rem;
+	}
+	@media (max-width: 48rem) {
+		.top {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 2rem;
+		}
+	}
 
-  .wordmark-text {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 150px;      /* in viewBox units; textLength does the fitting */
-    fill: none;
-    stroke: var(--rule-strong);
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;   /* hairline stays hairline at any scale */
-  }
+	.brand-name {
+		margin-bottom: 0.4375rem;
+	}
+	.brand-tag {
+		max-width: 34ch;
+		margin-bottom: 1.25rem;
+	}
 
-  .foot-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.75rem;
-    padding: 1.75rem 0;
-  }
-  @media (min-width: 700px) {
-    .foot-grid { grid-template-columns: repeat(3, 1fr); }
-  }
+	.socials {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		gap: 0.375rem;
+	}
+	.social {
+		display: grid;
+		place-items: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: var(--r-full);
+		border: 0.5px solid var(--border);
+		background: var(--bg-raised);
+		color: var(--text-2);
+		text-decoration: none;
+		transition: color 200ms var(--ease-soft), border-color 200ms var(--ease-soft);
+	}
+	.social:hover {
+		color: var(--text);
+		border-color: var(--hairline-strong);
+	}
 
-  .foot-col { display: flex; flex-direction: column; gap: 0.75rem; }
+	.links-head {
+		margin-bottom: 0.875rem;
+	}
+	.links ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5625rem;
+	}
+	.links a {
+		font-size: 0.90625rem;
+	}
 
-  .foot-icons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-  /* Square icon cell — same affordance as the nav */
-  .iconlink {
-    display: inline-flex;
-    padding: 0.4rem;
-    border: 1px solid var(--rule);
-    color: var(--ink-3);
-    text-decoration: none;
-    transition: color 180ms var(--ease-out), background-color 180ms var(--ease-out),
-      border-color 180ms var(--ease-out);
-  }
-  .iconlink:hover {
-    color: var(--paper);
-    background: var(--ink);
-    border-color: var(--ink);
-  }
-
-
-  .foot-build { margin: 0; color: var(--ink-3); max-width: 24ch; }
-
-  .colophon {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem 1.5rem;
-    padding-top: 1rem;
-  }
-  .colophon p { margin: 0; color: var(--ink-4); }
-  .sep { color: var(--hazard); margin: 0 0.3rem; }
-
-  /* Registration mark used as a geometric element, not legal text */
-  .reg-mark {
-    font-size: 0.8125rem;
-    color: var(--ink-3);
-    margin-right: 0.15rem;
-  }
+	.bottom {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+		padding-top: 1.5rem;
+	}
+	.copy {
+		color: var(--text-4);
+	}
+	.bottom-end {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+	}
 </style>

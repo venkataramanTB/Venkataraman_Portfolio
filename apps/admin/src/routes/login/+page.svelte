@@ -1,4 +1,5 @@
 <script>
+  import { base } from '$app/paths';
   import { goto } from '$app/navigation';
   import { token } from '$lib/stores/auth.js';
   import { api } from '$lib/api.js';
@@ -17,7 +18,7 @@
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   onMount(() => {
-    if (get(token)) goto('/dashboard');
+    if (get(token)) goto(`${base}/dashboard`);
   });
 
   function validate() {
@@ -38,7 +39,7 @@
       const res = await api.login(email.trim(), password);
       token.set(res.access_token);
       toast('Signed in');
-      goto('/dashboard');
+      goto(`${base}/dashboard`);
     } catch (e) {
       // Inline, specific, no alert dialog and no "Oops".
       failed = e.message || 'Sign-in failed. Check your credentials and try again.';
@@ -55,24 +56,25 @@
 </svelte:head>
 
 <main class="gate">
-  <div class="panel">
-    <!-- Masthead -->
+  <div class="panel card">
+    <!-- Masthead. The old console shouted RESTRICTED / UNIT D-01 at its own
+         operator; there is one user and he knows what this is. -->
     <header class="gate-head">
-      <div class="gate-meta">
-        <span class="t-micro">&#91; Restricted &#93;</span>
-        <span class="t-micro gate-unit">Unit D-01</span>
-      </div>
-      <h1 class="gate-title">VTB<br />Control</h1>
-      <div class="hazard-stripes gate-stripe" aria-hidden="true"></div>
+      <span class="gate-mark" aria-hidden="true">V</span>
+      <h1 class="gate-title">Control</h1>
+      <p class="gate-sub">Sign in to manage the portfolio’s content.</p>
     </header>
 
     <form on:submit|preventDefault={login} class="form" novalidate>
       {#if failed}
-        <p class="alert" role="alert">{failed}</p>
+        <p class="alert" role="alert">
+          <Icon name="close" size={15} />
+          <span>{failed}</span>
+        </p>
       {/if}
 
       <div class="row">
-        <label class="label" for="email">Operator email</label>
+        <label class="label" for="email">Email</label>
         <input
           id="email"
           type="email"
@@ -91,7 +93,7 @@
       </div>
 
       <div class="row">
-        <label class="label" for="pw">Passphrase</label>
+        <label class="label" for="pw">Password</label>
         <input
           id="pw"
           type="password"
@@ -108,23 +110,28 @@
         {/if}
       </div>
 
-      <button type="submit" disabled={loading} class="btn btn-hazard submit"
-            aria-label="Sign in" title="Sign in">
+      <!-- A primary action states what it does. The old button was two icons
+           and an aria-label, which left sighted users guessing. -->
+      <button type="submit" disabled={loading} class="btn btn-primary submit">
         {#if loading}
           <span class="submit-wait" aria-hidden="true">
             <span></span><span></span><span></span>
           </span>
+          <span>Signing in…</span>
         {:else}
           <Icon name="lock" size={15} />
-          <Icon name="arrow-right" size={14} />
+          <span>Sign in</span>
         {/if}
       </button>
     </form>
 
     <footer class="gate-foot">
       <ThemeSwitch />
-      <a href="/" class="back" aria-label="Back to portfolio" title="Back to portfolio">
-        <Icon name="arrow-left" size={16} />
+      <!-- Absolute root: the public site lives at / even when this console is
+           mounted under /admin on the same origin. -->
+      <a href="/" class="back">
+        <Icon name="arrow-left" size={15} />
+        <span>Portfolio</span>
       </a>
     </footer>
   </div>
@@ -133,120 +140,143 @@
 <style>
   .gate {
     min-height: 100dvh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    /* Blueprint grid, drawn in ink rather than violet */
-    background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 48px 48px;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
   }
 
   .panel {
     width: 100%;
-    max-width: 25rem;
-    background: var(--paper);
-    border: 1px solid var(--ink);
+    max-width: 23rem;
+    padding: 1.75rem;
+    border-radius: var(--r-xl);
+    box-shadow: var(--e3), var(--e-ring);
   }
 
-  /* ─── Masthead ─────────────────────────────────────────────────────────── */
-  .gate-head { padding: 1.25rem 1.25rem 0; }
-
-  .gate-meta {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
+  /* ─── Masthead ─── */
+  .gate-head {
+    margin-bottom: 1.5rem;
   }
-  .gate-unit { color: var(--ink-4); }
-
+  .gate-mark {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 1rem;
+    border-radius: var(--r-full);
+    background: var(--fill);
+    color: var(--fill-text);
+    font-size: 1.125rem;
+    font-weight: 680;
+    letter-spacing: -0.02em;
+  }
   .gate-title {
-    margin: 0.875rem 0 1rem;
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(2.25rem, 11vw, 3.25rem);
-    line-height: 0.85;
-    letter-spacing: -0.045em;
-    text-transform: uppercase;
-    color: var(--ink);
+    margin: 0 0 0.3125rem;
+    font-size: 1.625rem;
+    font-weight: 660;
+    line-height: 1.1;
+    letter-spacing: -0.028em;
+  }
+  .gate-sub {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-3);
   }
 
-  .gate-stripe { height: 8px; opacity: 0.16; }
-
-  /* ─── Form ─────────────────────────────────────────────────────────────── */
+  /* ─── Form ─── */
   .form {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1.25rem;
+  }
+  .row {
+    display: block;
+    padding: 0;
+    border: 0;
   }
 
-  .row { display: flex; flex-direction: column; }
-
   .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4375rem;
     margin: 0;
     padding: 0.625rem 0.75rem;
-    background: var(--hazard);
-    color: var(--paper);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
+    border-radius: var(--r-sm);
+    background: var(--bad-soft);
+    border: 0.5px solid rgb(var(--bad-rgb) / 0.3);
+    color: var(--bad);
+    font-size: 0.8125rem;
     line-height: 1.45;
   }
 
   .err {
-    margin: 0.3rem 0 0;
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--hazard-ink);
+    margin: 0.375rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--bad);
   }
 
-  .submit { padding: 0.75rem; margin-top: 0.25rem; }
+  .submit {
+    width: 100%;
+    margin-top: 0.25rem;
+    padding-block: 0.625rem;
+  }
 
-  /* Three sweeping bars — matches the portfolio's waiting indicator */
   .submit-wait {
     display: inline-flex;
-    gap: 2px;
-    height: 0.7rem;
+    gap: 0.1875rem;
     align-items: center;
-    margin-right: 0.4rem;
   }
   .submit-wait span {
-    width: 3px;
-    height: 100%;
-    background: var(--paper);
-    animation: wait 0.9s var(--ease-out) infinite;
+    width: 0.3125rem;
+    height: 0.3125rem;
+    border-radius: var(--r-full);
+    background: currentColor;
+    animation: wait 1.1s var(--ease-soft) infinite;
   }
-  .submit-wait span:nth-child(2) { animation-delay: 0.12s; }
-  .submit-wait span:nth-child(3) { animation-delay: 0.24s; }
+  .submit-wait span:nth-child(2) { animation-delay: 0.14s; }
+  .submit-wait span:nth-child(3) { animation-delay: 0.28s; }
   @keyframes wait {
-    0%, 100% { transform: scaleY(0.35); }
-    50%      { transform: scaleY(1); }
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 1; }
   }
 
-  /* ─── Footer ───────────────────────────────────────────────────────────── */
+  /* ─── Foot ─── */
   .gate-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1.25rem;
-    border-top: 1px solid var(--rule);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--hairline);
   }
+  /* The card is narrower than the theme control's full labelled width, so in
+     this one context it collapses to icons. The choice itself is never
+     removed — all three modes stay reachable. */
+  .gate-foot :global(.seg-text) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .gate-foot :global(.segment) {
+    padding-inline: 0.5rem;
+  }
+
   .back {
     display: inline-flex;
-    padding: 0.4rem;
-    border: 1px solid var(--rule);
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--text-3);
     text-decoration: none;
-    color: var(--ink-3);
-    transition: color 180ms var(--ease-out), background-color 180ms var(--ease-out),
-      border-color 180ms var(--ease-out);
+    transition: color 180ms var(--ease-soft);
   }
-  .back:hover {
-    color: var(--paper);
-    background: var(--ink);
-    border-color: var(--ink);
+  .back:hover { color: var(--text); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .submit-wait span { animation: none; opacity: 1; }
   }
-  .back:hover { color: var(--hazard); }
 </style>

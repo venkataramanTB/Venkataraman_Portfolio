@@ -1,127 +1,118 @@
 <script>
-  import { page } from '$app/stores';
-  import Icon from '$lib/components/Icon.svelte';
+	/**
+	 * Error page.
+	 *
+	 * Never trap the reader: every status gets a plain explanation of what
+	 * happened, whether it's worth retrying, and at least one way onward. The
+	 * copy is per-status because "something went wrong" tells nobody anything.
+	 */
+	import { page } from '$app/stores';
+	import { press } from '$lib/motion/gestures.js';
+	import Icon from '$lib/components/Icon.svelte';
 
-  // Direct, active-voice copy per status. No "Oops!", no exclamation marks.
-  const COPY = {
-    404: {
-      code: '404',
-      label: 'Not on file',
-      body: 'That address does not match any page in this document. It may have been renumbered, or the link may be mistyped.',
-    },
-    503: {
-      code: '503',
-      label: 'Source unavailable',
-      body: 'The data service did not respond. It sleeps when idle and takes up to 30 seconds to wake — reloading usually clears it.',
-    },
-  };
+	$: status = $page.status;
+	$: message = $page.error?.message ?? '';
 
-  $: status = $page.status;
-  $: copy =
-    COPY[status] ?? {
-      code: String(status ?? '500'),
-      label: 'Fault',
-      body: $page.error?.message || 'Something failed on our side while building this page.',
-    };
+	const COPY = {
+		404: {
+			title: 'No such page',
+			body: 'The address is right-looking but nothing lives there. It may have been renamed, or the link may be stale.',
+			retry: false
+		},
+		503: {
+			title: 'The server is waking up',
+			body: 'The API sleeps when idle on the free tier. Give it twenty seconds and try again — it usually answers on the second attempt.',
+			retry: true
+		},
+		500: {
+			title: 'Something broke on our side',
+			body: "That's a bug, not something you did. Retrying is worth one attempt; if it persists, the contact form reaches a human.",
+			retry: true
+		}
+	};
+
+	$: copy =
+		COPY[status] ?? {
+			title: `Error ${status}`,
+			body: 'An unexpected response came back. Retrying may help.',
+			retry: true
+		};
 </script>
 
 <svelte:head>
-  <title>{copy.code} — {copy.label}</title>
-  <meta name="robots" content="noindex" />
+	<title>{copy.title} — Venkataraman TB</title>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
-<main id="main" class="err">
-  <div class="shell err-inner">
-    <div class="err-meta">
-      <span class="t-micro">&#91; Fault report &#93;</span>
-      <span class="t-micro err-unit">Unit D-01</span>
-    </div>
+<main id="main" class="wrap">
+	<div class="shell inner">
+		<p class="t-mono status">{status}</p>
+		<h1 class="t-display title">{copy.title}</h1>
+		<p class="t-lead body">{copy.body}</p>
 
-    <hr class="band-rule-heavy" />
+		{#if message && message !== copy.title}
+			<p class="t-mono detail">{message}</p>
+		{/if}
 
-    <p class="err-code">{copy.code}</p>
+		<div class="actions">
+			<a class="btn btn-primary" href="/" use:press>
+				<Icon name="arrow-left" size={16} />
+				<span>Back to the portfolio</span>
+			</a>
 
-    <h1 class="err-label">{copy.label}</h1>
+			{#if copy.retry}
+				<button class="btn" on:click={() => location.reload()} use:press>
+					<Icon name="retry" size={16} />
+					<span>Try again</span>
+				</button>
+			{/if}
 
-    <p class="t-lead err-body">{copy.body}</p>
-
-    <div class="err-actions">
-      <a href="/" class="btn btn-hazard" data-press
-         aria-label="Return to index" title="Return to index">
-        <Icon name="index" size={15} />
-        <Icon name="arrow-right" size={14} />
-      </a>
-      <a href="/#projects" class="btn" data-press
-         aria-label="Browse builds" title="Browse builds">
-        <Icon name="projects" size={15} />
-        <Icon name="arrow-right" size={14} />
-      </a>
-      {#if status === 503}
-        <button class="btn" on:click={() => location.reload()} data-press
-                aria-label="Retry" title="Retry">
-          <Icon name="retry" size={15} />
-        </button>
-      {/if}
-    </div>
-
-    <div class="hazard-stripes err-stripe" aria-hidden="true"></div>
-  </div>
+			<a class="btn btn-quiet" href="/#contact" use:press>
+				<span>Report it</span>
+			</a>
+		</div>
+	</div>
 </main>
 
 <style>
-  .err {
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: clamp(2rem, 8vh, 5rem) 0;
-  }
+	.wrap {
+		min-height: 100svh;
+		display: grid;
+		place-items: center;
+		padding-block: 4rem;
+	}
 
-  .err-meta {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-bottom: 0.625rem;
-  }
-  .err-unit { color: var(--ink-4); }
+	.inner {
+		max-width: 38rem;
+	}
 
-  /* The status code is the macro-typographic subject of the page */
-  .err-code {
-    margin: clamp(1.25rem, 4vh, 2.25rem) 0 0;
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(5rem, 26vw, 20rem);
-    line-height: 0.78;
-    letter-spacing: -0.06em;
-    color: transparent;
-    -webkit-text-stroke: 2px var(--ink);
-    text-stroke: 2px var(--ink);
-    user-select: none;
-  }
+	.status {
+		font-size: 0.8125rem;
+		color: var(--text-4);
+		margin-bottom: 1rem;
+	}
 
-  .err-label {
-    margin: clamp(1rem, 3vh, 1.75rem) 0 0.875rem;
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(1.5rem, 4.5vw, 2.75rem);
-    line-height: 0.95;
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
+	.title {
+		margin-bottom: 1rem;
+	}
 
-  .err-body { margin: 0 0 2rem; }
+	.body {
+		margin-bottom: 1.5rem;
+	}
 
-  .err-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
+	.detail {
+		padding: 0.75rem 0.875rem;
+		margin-bottom: 1.5rem;
+		border-radius: var(--r-sm);
+		background: var(--bg-sunk);
+		border: 0.5px solid var(--border);
+		color: var(--text-3);
+		word-break: break-word;
+	}
 
-  .err-stripe {
-    height: 10px;
-    opacity: 0.16;
-    margin-top: clamp(2rem, 6vh, 3.5rem);
-  }
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.625rem;
+	}
 </style>
