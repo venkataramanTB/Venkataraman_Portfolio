@@ -18,14 +18,14 @@
 /** Taken from the portrait, warmed to sit on the paper. */
 export const SOFT_PALETTE = {
 	skin: '#c98d62',
-	skinDark: '#b2784f',
-	hair: '#2a2420',
-	shirt: '#17766a', // the system accent, so he belongs to the page
-	shirtDark: '#115c53',
-	trouser: '#5c5751',
-	trouserDark: '#4a4540',
-	shoe: '#2a2420',
-	white: '#ffffff'
+	skinDark: '#ad744c',
+	hair: '#17151a',
+	shirt: '#d9b45e', // the system gold, so he belongs to the page
+	shirtDark: '#a8862f',
+	trouser: '#24232a',
+	trouserDark: '#1a191f',
+	shoe: '#0f0e12',
+	white: '#f3efe6'
 };
 
 const cap = (w, len, fill) => ({ type: 'capsule', w, len, fill });
