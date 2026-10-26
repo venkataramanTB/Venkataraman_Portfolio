@@ -6,7 +6,7 @@
 
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/logo.png" />
-		<meta name="theme-color" content="#fbfbfd" />
+		<meta name="theme-color" content="#2261e9" />
 
 		<!--
 			Inter is the fallback face for everything that is not an Apple
@@ -16,8 +16,13 @@
 		-->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<!--
+			Funnel Display for the big headings, Space Grotesk for everything
+			else. Two families doing two clearly separate jobs — a display face
+			that only ever appears large, and a text face tuned for small sizes.
+		-->
 		<link
-			href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&family=Space+Grotesk:wght@300..700&display=swap"
 			rel="stylesheet"
 		/>
 
@@ -38,7 +43,7 @@
 						(m !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 					if (dark) {
 						var t = document.querySelector('meta[name="theme-color"]');
-						if (t) t.setAttribute('content', '#08090c');
+						if (t) t.setAttribute('content', '#0b0b0c');
 					}
 				} catch (e) {
 					/* blocked storage: fall back to the system preference in CSS */

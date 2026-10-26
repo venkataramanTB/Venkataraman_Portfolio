@@ -21,6 +21,7 @@
 	import Contact from '$lib/components/Contact.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
+	import FeatureChapter from '$lib/components/FeatureChapter.svelte';
 
 	export let data;
 
@@ -47,6 +48,15 @@
 	$: description =
 		profile?.bio ??
 		'AI engineer and full-stack developer building LLM agents, ML pipelines, native iOS apps and the backends underneath them.';
+
+	/**
+	 * The three featured projects become full colour chapters of their own,
+	 * each about one and a half screens tall. Everything else goes in the
+	 * work index below them.
+	 */
+	const GROUNDS = ['ch-navy', 'ch-lavender', 'ch-yellow'];
+	$: featured = (projects ?? []).filter((p) => p.is_featured).slice(0, 3);
+	$: rest = (projects ?? []).filter((p) => !featured.includes(p));
 
 	function isEmpty(d) {
 		return !d?.profile && !d?.skills?.length && !d?.projects?.length;
@@ -107,43 +117,39 @@
 {#key dataKey}
 	<Nav {socialLinks} resumeUrl={profile?.resume_url ?? ''} />
 
-	<!-- The tour.
-	     He occupies the left column for the whole page and never leaves it;
-	     the sections scroll past him on the right as scenes he introduces.
-	     The stage is an empty sticky slot — the Companion measures it and
-	     places himself in it, so his position is a consequence of the layout
-	     rather than a set of magic numbers. -->
-	<div class="tour">
-		<div class="tour-stage" aria-hidden="true">
-			<div id="character-stage" class="stage-slot"></div>
-		</div>
+	<!-- Chapters run full-bleed. The character floats over them as a fixed
+	     overlay rather than occupying a column: a reserved lane would stop
+	     every ground short of the viewport edge, and full-bleed colour is the
+	     whole point of the chapter system. -->
+	<div>
+		<main id="main" class="scenes">
+			<!-- Each chapter carries its own ground. The drama in a long page is
+			     the cut between them as you scroll, not any single colour. -->
+			<div class="chapter ch-blue bg-grid">
+				<Hero {profile} {socialLinks} />
+			</div>
 
-		<main id="main" class="tour-scenes">
-			<Hero {profile} {socialLinks} />
-			<Practice {profile} {stats} {skills} {projects} />
-			<Work {projects} />
-			<Experience {experiences} {education} />
-			<Stack {skills} />
-			<Credentials {certificates} {achievements} />
-			<Contact {profile} {socialLinks} />
+			<div class="chapter ch-paper bg-grid">
+				<Practice {profile} {stats} {skills} {projects} />
+			</div>
+
+			{#each featured as p, i (p.id)}
+				<FeatureChapter project={p} ground={GROUNDS[i % GROUNDS.length]} index={i + 1} />
+			{/each}
+
+			<div class="chapter ch-stone bg-grid">
+				<Work projects={rest} />
+				<Experience {experiences} {education} />
+				<Stack {skills} />
+				<Credentials {certificates} {achievements} />
+			</div>
+
+			<div class="chapter ch-ink bg-grid">
+				<Contact {profile} {socialLinks} />
+			</div>
 		</main>
 	</div>
 
 	<Footer {profile} {socialLinks} />
 {/key}
 
-<style>
-	/* The slot he stands in. Sized as a share of the viewport so he scales
-	   with the window instead of being pinned to one pixel height, and
-	   bottom-aligned so his feet meet the floor of the column. */
-	.stage-slot {
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: clamp(2rem, 9vh, 6rem);
-		height: min(74vh, 40rem);
-	}
-	.tour-stage {
-		position: sticky;
-	}
-</style>

@@ -3,11 +3,19 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   OBSIDIAN — design system (black & gold)
+   CHAPTERS — design system
    ──────────────────────────────────────────────────────────────────────────────
-   The page is one colour from edge to edge — near-black — with a single gold
-   accent carrying every emphasis. Not a background behind content: the ground
-   everything sits on. Three consequences drive every rule below.
+   The page is a sequence of CHAPTERS, each with its own full-bleed ground.
+   Blue, then paper, then a deep navy, a lavender and a yellow for the three
+   featured projects, then stone for the work index, then ink for contact.
+
+   This is the thing every earlier attempt got wrong: they picked one colour
+   and flooded the whole site with it. One colour for twelve screens is
+   monotonous however good the colour is — the drama comes from the CUT
+   between grounds as you scroll, not from the ground itself. So the system's
+   job is to make a chapter trivially easy to declare and to guarantee that
+   everything inside it (text, borders, grid guides, buttons) re-tints
+   automatically.
 
    1. NO CARDS, NO PANELS, NO ELEVATION. A soft shadow needs a neutral
       substrate to fall on; over a saturated field it turns to mud. Separation
@@ -82,7 +90,7 @@
 	   Hard offsets, no blur. On black the shadow has to be LIGHTER than the
 	   ground or it is invisible, so it is a deep bronze — the gold's own
 	   shadow colour — which reads as a second layer rather than as dirt. */
-	--shadow-ink: #6f5a24;
+	--shadow-ink: rgba(11, 11, 12, 0.85);
 	--e1: 3px 3px 0 var(--shadow-ink);
 	--e2: 5px 5px 0 var(--shadow-ink);
 	--e3: 8px 8px 0 var(--shadow-ink);
@@ -98,8 +106,10 @@
 	--r-full: 999px;
 
 	/* ─── Type ───────────────────────────────────────────────────────────── */
-	--font: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-		Roboto, system-ui, sans-serif;
+	/* Two families, two jobs: a display face that only ever appears large,
+	   and a text face tuned for small sizes. */
+	--font: 'Space Grotesk', ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-display: 'Funnel Display', 'Space Grotesk', ui-sans-serif, sans-serif;
 	--font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
 
 	--gutter: clamp(1.25rem, 5vw, 3rem);
@@ -153,6 +163,80 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   CHAPTERS
+   A chapter sets two variables — its ground and the ink that reads on it —
+   and everything inside re-tints from those. That is the whole mechanism:
+   no component needs to know which chapter it is in.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.chapter {
+	position: relative;
+	background: var(--ground);
+	color: var(--on);
+	/* The offset shadow is the chapter's own ink, so it reads on every ground
+	   instead of being a fixed near-black that vanishes on the dark ones. */
+	--shadow-ink: color-mix(in srgb, var(--on) 80%, transparent);
+	--field: var(--ground);
+	--ink: var(--on);
+	--ink-2: color-mix(in srgb, var(--on) 78%, transparent);
+	--ink-3: color-mix(in srgb, var(--on) 58%, transparent);
+	--ink-4: color-mix(in srgb, var(--on) 38%, transparent);
+	--hairline: color-mix(in srgb, var(--on) 16%, transparent);
+	--hairline-strong: color-mix(in srgb, var(--on) 34%, transparent);
+	--border: color-mix(in srgb, var(--on) 26%, transparent);
+	--text: var(--on);
+	--text-2: var(--ink-2);
+	--text-3: var(--ink-3);
+	--text-4: var(--ink-4);
+}
+
+/* The grounds. Sampled from the reference, which uses saturated, confident
+   colours rather than tints — a pale wash would not survive a full screen. */
+.ch-blue     { --ground: #2261e9; --on: #fbfbf8; }
+.ch-paper    { --ground: #fbfbf8; --on: #0b0b0c; }
+.ch-navy     { --ground: #0a3149; --on: #fbfbf8; }
+.ch-lavender { --ground: #c2a7f4; --on: #0b0b0c; }
+.ch-yellow   { --ground: #ffe64e; --on: #0b0b0c; }
+.ch-stone    { --ground: #f1f1ec; --on: #0b0b0c; }
+.ch-ink      { --ground: #0b0b0c; --on: #fbfbf8; }
+
+/* Column guides, drawn per chapter so they tint with the ground instead of
+   being one fixed overlay the whole page shares. */
+.bg-grid::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-image: repeating-linear-gradient(
+		to right,
+		color-mix(in srgb, var(--on) 9%, transparent) 0,
+		color-mix(in srgb, var(--on) 9%, transparent) 1px,
+		transparent 1px,
+		transparent calc(100% / 12)
+	);
+	background-size: calc(100% - var(--gutter) * 2) 100%;
+	background-position: var(--gutter) 0;
+	background-repeat: no-repeat;
+}
+
+/* The page grid: twelve columns everywhere, which is what lets work items
+   span 4 or 6 and still line up with the guides behind them. */
+.grid-page {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	column-gap: 1.26rem;
+	width: 100%;
+	max-width: var(--shell-wide);
+	margin-inline: auto;
+	padding-inline: var(--gutter);
+}
+@media (max-width: 48rem) {
+	.grid-page {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    BASE
    ══════════════════════════════════════════════════════════════════════════════ */
 
@@ -162,13 +246,15 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
-	background: var(--field);
+	/* Behind the chapters. Any gap should read as paper, never as a leftover
+	   ground from an earlier design. */
+	background: #fbfbf8;
 }
 
 body {
 	margin: 0;
-	background: var(--field);
-	color: var(--ink);
+	background: #fbfbf8;
+	color: #0b0b0c;
 	font-family: var(--font);
 	font-size: 1rem;
 	line-height: 1.5;
@@ -294,9 +380,10 @@ video {
 
 /* The headline. Deliberately enormous — this is the whole hero. */
 .t-hero {
-	font-size: clamp(2.75rem, 8.4vw, 7rem);
-	font-weight: 700;
-	line-height: 0.92;
+	font-family: var(--font-display);
+	font-size: clamp(2.75rem, 9.5vw, 8.5rem);
+	font-weight: 600;
+	line-height: 0.9;
 	letter-spacing: -0.045em;
 	text-wrap: balance;
 	margin: 0;
@@ -310,12 +397,12 @@ video {
 	color: var(--ink-3);
 }
 .t-hero .mid {
-	font-weight: 500;
-	color: var(--gold);
+	font-weight: 600;
 }
 
 .t-display {
-	font-size: clamp(2.25rem, 6vw, 4.5rem);
+	font-family: var(--font-display);
+	font-size: min(7vw - 1.6rem, 6.5rem);
 	font-weight: 650;
 	line-height: 1;
 	letter-spacing: -0.035em;
@@ -324,6 +411,7 @@ video {
 }
 
 .t-title {
+	font-family: var(--font-display);
 	font-size: clamp(1.5rem, 2.6vw, 2.125rem);
 	font-weight: 600;
 	line-height: 1.12;
@@ -415,69 +503,11 @@ video {
 	padding-left: calc(var(--gutter) + var(--lane));
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   THE TOUR
-   He holds a sticky column of his own for the whole page; the content scrolls
-   past him as scenes. Two columns rather than an overlay, because an overlay
-   means he either covers the copy or spends his life dodging it.
-   ══════════════════════════════════════════════════════════════════════════════ */
-
-.tour {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-}
+/* The character is a fixed overlay, not a column. A reserved lane would stop
+   every chapter short of the viewport edge, and full-bleed colour is the whole
+   point of the chapter system. */
 .tour-stage {
-	display: none; /* no room below the breakpoint; he docks to a corner */
-}
-.tour-scenes {
-	min-width: 0;
-}
-
-@media (min-width: 64rem) {
-	.tour {
-		grid-template-columns: var(--stage-w) minmax(0, 1fr);
-		align-items: start;
-	}
-	.tour-stage {
-		display: block;
-		position: sticky;
-		top: 0;
-		height: 100svh;
-		pointer-events: none;
-	}
-	/* Already inset by the stage column, so the shell pads but never
-	   re-centres — otherwise the content drifts back toward the middle and
-	   reopens the gap the column exists to close. */
-	.tour-scenes .shell {
-		max-width: 58rem;
-		margin-inline: 0;
-		padding-left: var(--gutter);
-	}
-}
-.shell-wide {
-	max-width: var(--shell-wide);
-}
-
-.section {
-	position: relative;
-	padding-block: clamp(5rem, 14vh, 11rem);
-	scroll-margin-top: 6rem;
-	border-top: 1px solid var(--hairline);
-}
-
-.section-head {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	margin-bottom: clamp(2.5rem, 6vh, 4rem);
-	max-width: 46rem;
-}
-
-.hairline {
-	height: 1px;
-	border: 0;
-	margin: 0;
-	background: var(--hairline);
+	display: none;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -557,15 +587,17 @@ video {
 	box-shadow: 0 0 0 var(--shadow-ink);
 }
 
-/* The primary action is gold, not white. On a black field white is simply
-   the text colour; making the single most important control gold is what
-   gives the accent a job to do. */
+/* The primary action inverts with its chapter: it takes the chapter's ink as
+   its fill and the chapter's ground as its text. A fixed accent colour cannot
+   work here — it would have to look right on blue, navy, lavender, yellow,
+   stone and ink at once, and no single colour does. */
 .btn-primary {
-	background: var(--gold);
-	color: #0b0b0d;
+	background: var(--on);
+	color: var(--ground);
 }
 .btn-primary:hover {
-	background: var(--gold-pale);
+	background: var(--on);
+	opacity: 0.88;
 }
 
 .btn-quiet {

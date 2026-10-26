@@ -37,7 +37,9 @@
 	const MARGIN = 20;
 
 	/** How large he is when guiding, relative to his hero size. */
-	const GUIDE_SCALE = 0.44;
+	/* Floating over the chapters rather than standing in a column, so he is
+	   smaller: at 0.44 he covered the hero's buttons. */
+	const GUIDE_SCALE = 0.34;
 
 	/**
 	 * Where he is:
@@ -53,6 +55,13 @@
 	 * scrolled away was working against the whole idea.
 	 */
 	let mode = 'stage';
+	/**
+	 * Whether a stage slot actually exists in the layout. It no longer does on
+	 * the chapter layout — he floats over the chapters instead — and the
+	 * stage-specific bubble placement must switch off with it, or the bubble
+	 * anchors to a column that isn't there and runs off the screen.
+	 */
+	let hasStage = false;
 
 	let mounted = false;
 	let hidden = false; // sent to the corner
@@ -177,13 +186,18 @@
 
 	/** The side lane he occupies while guiding the rest of the page. */
 	function guideTarget() {
-		const p = placeAt(MARGIN, window.innerHeight - MARGIN, GUIDE_SCALE);
+		// A wider inset than MARGIN: his poses swing the hands well outside the
+		// figure's nominal width, and at the bare margin they were being
+		// clipped by the edge of the viewport.
+		const p = placeAt(MARGIN * 2.5, window.innerHeight - MARGIN, GUIDE_SCALE);
 		return { scale: GUIDE_SCALE, x: p.x, y: p.y };
 	}
 
 	/** Move him to wherever the current mode says he belongs. */
 	function restage({ instant = false } = {}) {
-		const t = mode === 'stage' ? (stageTarget() ?? guideTarget()) : guideTarget();
+		const st = mode === 'stage' ? stageTarget() : null;
+		hasStage = !!st;
+		const t = st ?? guideTarget();
 
 		// Turn him to face the page rather than the margin. Centre stage that
 		// means gesturing back toward his own name; in the guide lane on the
@@ -741,7 +755,7 @@
 		<div
 			bind:this={el}
 			class="companion no-print ch-{pose} ch-{face}"
-			class:on-stage={mode === 'stage'}
+			class:on-stage={hasStage}
 			class:invisible
 			class:held
 			style={`--sx:${squash.sx}; --sy:${squash.sy}; --rot:${rot}deg`}
