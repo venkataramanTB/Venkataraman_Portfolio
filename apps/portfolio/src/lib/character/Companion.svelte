@@ -20,7 +20,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { Spring, drive, project, SPRINGS, springConfig, prefersReducedMotion } from '$lib/motion/spring.js';
 	import { draggable } from '$lib/motion/gestures.js';
-	import GeoCharacter from './GeoCharacter.svelte';
+	import Character3D from '$lib/character3d/Character3D.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { GREETING, SECTIONS, REACTIONS, TRICKS, pick } from './script.js';
 
@@ -741,7 +741,7 @@
 				on:pointerdown={onPoke}
 				role="presentation"
 			>
-				<GeoCharacter animation={anim} {lean} {facing} {lookX} {lookY} />
+				<Character3D animation={anim} {lean} {facing} {lookX} {lookY} />
 			</div>
 
 			<!-- Controls -->
@@ -829,7 +829,7 @@
 
 	/* ══════════════════════════════════════════════════════════════════════
 	   WHOLE-BODY MOTION
-	   Limb motion belongs to the rig (rig.js + GeoCharacter.svelte), which
+	   Limb motion belongs to the rig (rig.js + character3d/), which
 	   poses every joint. What stays here is motion that moves the whole figure
 	   at once, because only this element knows where he is on the page.
 	   ══════════════════════════════════════════════════════════════════════ */
