@@ -150,7 +150,7 @@
 		border-radius: 10px;
 		overflow: hidden;
 		aspect-ratio: 3 / 2;
-		background: color-mix(in srgb, var(--on) 10%, transparent);
+		background: var(--line);
 	}
 	.shot img {
 		width: 100%;

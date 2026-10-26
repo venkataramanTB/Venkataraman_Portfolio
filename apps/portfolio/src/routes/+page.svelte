@@ -54,7 +54,7 @@
 	 * each about one and a half screens tall. Everything else goes in the
 	 * work index below them.
 	 */
-	const GROUNDS = ['ch-navy', 'ch-lavender', 'ch-yellow'];
+	const GROUNDS = ['ch-char', 'ch-gold', 'ch-bronze'];
 	$: featured = (projects ?? []).filter((p) => p.is_featured).slice(0, 3);
 	$: rest = (projects ?? []).filter((p) => !featured.includes(p));
 
@@ -125,11 +125,11 @@
 		<main id="main" class="scenes">
 			<!-- Each chapter carries its own ground. The drama in a long page is
 			     the cut between them as you scroll, not any single colour. -->
-			<div class="chapter ch-blue bg-grid">
+			<div class="chapter ch-ink bg-grid">
 				<Hero {profile} {socialLinks} />
 			</div>
 
-			<div class="chapter ch-paper bg-grid">
+			<div class="chapter ch-cream bg-grid">
 				<Practice {profile} {stats} {skills} {projects} />
 			</div>
 

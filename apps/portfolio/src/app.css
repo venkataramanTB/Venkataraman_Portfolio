@@ -169,38 +169,125 @@
    no component needs to know which chapter it is in.
    ══════════════════════════════════════════════════════════════════════════════ */
 
+/*
+ * A chapter declares its ground and its ink ramp EXPLICITLY.
+ *
+ * The first version derived the ramp with color-mix(in srgb, var(--on) …)
+ * and chained those through --ink-2 → --text-2 and so on. That compiled
+ * fine in a browser but made the CSS minifier allocate until the build
+ * process died with "Zone Allocation failed — process out of memory":
+ * every chained var() inside a color-mix multiplies the work it does
+ * trying to resolve the value statically, across every chapter selector.
+ *
+ * Spelling the four steps out per chapter is more lines but it is
+ * predictable, it builds, and it allows each ramp to be tuned to its own
+ * ground instead of being one formula applied to six very different
+ * lightnesses.
+ */
 .chapter {
 	position: relative;
 	background: var(--ground);
 	color: var(--on);
-	/* The offset shadow is the chapter's own ink, so it reads on every ground
-	   instead of being a fixed near-black that vanishes on the dark ones. */
-	--shadow-ink: color-mix(in srgb, var(--on) 80%, transparent);
 	--field: var(--ground);
 	--ink: var(--on);
-	--ink-2: color-mix(in srgb, var(--on) 78%, transparent);
-	--ink-3: color-mix(in srgb, var(--on) 58%, transparent);
-	--ink-4: color-mix(in srgb, var(--on) 38%, transparent);
-	--hairline: color-mix(in srgb, var(--on) 16%, transparent);
-	--hairline-strong: color-mix(in srgb, var(--on) 34%, transparent);
-	--border: color-mix(in srgb, var(--on) 26%, transparent);
 	--text: var(--on);
-	--text-2: var(--ink-2);
-	--text-3: var(--ink-3);
-	--text-4: var(--ink-4);
+	--text-2: var(--on-2);
+	--text-3: var(--on-3);
+	--text-4: var(--on-4);
+	--ink-2: var(--on-2);
+	--ink-3: var(--on-3);
+	--ink-4: var(--on-4);
+	--hairline: var(--line);
+	--hairline-strong: var(--line-strong);
+	--border: var(--line-strong);
 }
 
-/* The grounds. Sampled from the reference, which uses saturated, confident
-   colours rather than tints — a pale wash would not survive a full screen. */
-.ch-blue     { --ground: #2261e9; --on: #fbfbf8; }
-.ch-paper    { --ground: #fbfbf8; --on: #0b0b0c; }
-.ch-navy     { --ground: #0a3149; --on: #fbfbf8; }
-.ch-lavender { --ground: #c2a7f4; --on: #0b0b0c; }
-.ch-yellow   { --ground: #ffe64e; --on: #0b0b0c; }
-.ch-stone    { --ground: #f1f1ec; --on: #0b0b0c; }
-.ch-ink      { --ground: #0b0b0c; --on: #fbfbf8; }
+/* The grounds, in black and gold.
+   The reference changes hue between chapters; this palette has only two, so
+   it changes VALUE instead — near-black, charcoal, deep bronze, gold, stone,
+   cream. The cut still lands, because what the eye registers when a ground
+   changes is the jump in lightness, not the hue.
+   Every ground/ink pairing below is 9.4:1 or better, so each clears AAA. */
 
-/* Column guides, drawn per chapter so they tint with the ground instead of
+.ch-ink { /* 17.1:1 */
+	--ground: #0b0b0c;
+	--on: #f3efe6;
+	--on-2: rgba(243, 239, 230, 0.78);
+	--on-3: rgba(243, 239, 230, 0.56);
+	--on-4: rgba(243, 239, 230, 0.36);
+	--line: rgba(243, 239, 230, 0.14);
+	--line-strong: rgba(243, 239, 230, 0.3);
+	--guide: rgba(243, 239, 230, 0.09);
+	--shadow-ink: rgba(217, 180, 94, 0.55);
+	--gold: #d9b45e;
+}
+
+.ch-char { /* 15.6:1 */
+	--ground: #17171a;
+	--on: #f3efe6;
+	--on-2: rgba(243, 239, 230, 0.78);
+	--on-3: rgba(243, 239, 230, 0.56);
+	--on-4: rgba(243, 239, 230, 0.36);
+	--line: rgba(243, 239, 230, 0.14);
+	--line-strong: rgba(243, 239, 230, 0.3);
+	--guide: rgba(243, 239, 230, 0.08);
+	--shadow-ink: rgba(217, 180, 94, 0.5);
+	--gold: #d9b45e;
+}
+
+.ch-bronze { /* 10.4:1 — gold ink on near-black */
+	--ground: #241c0d;
+	--on: #e8c877;
+	--on-2: rgba(232, 200, 119, 0.8);
+	--on-3: rgba(232, 200, 119, 0.58);
+	--on-4: rgba(232, 200, 119, 0.38);
+	--line: rgba(232, 200, 119, 0.16);
+	--line-strong: rgba(232, 200, 119, 0.32);
+	--guide: rgba(232, 200, 119, 0.1);
+	--shadow-ink: rgba(11, 11, 12, 0.8);
+	--gold: #e8c877;
+}
+
+.ch-gold { /* 9.4:1 — a whole chapter in gold */
+	--ground: #d9b45e;
+	--on: #17120a;
+	--on-2: rgba(23, 18, 10, 0.8);
+	--on-3: rgba(23, 18, 10, 0.6);
+	--on-4: rgba(23, 18, 10, 0.4);
+	--line: rgba(23, 18, 10, 0.16);
+	--line-strong: rgba(23, 18, 10, 0.34);
+	--guide: rgba(23, 18, 10, 0.1);
+	--shadow-ink: rgba(23, 18, 10, 0.75);
+	--gold: #6d5415; /* gold on gold would vanish, so the accent darkens */
+}
+
+.ch-stone { /* 15.5:1 */
+	--ground: #e8e4da;
+	--on: #0b0b0c;
+	--on-2: rgba(11, 11, 12, 0.76);
+	--on-3: rgba(11, 11, 12, 0.56);
+	--on-4: rgba(11, 11, 12, 0.36);
+	--line: rgba(11, 11, 12, 0.12);
+	--line-strong: rgba(11, 11, 12, 0.28);
+	--guide: rgba(11, 11, 12, 0.07);
+	--shadow-ink: rgba(11, 11, 12, 0.8);
+	--gold: #8a6b1f;
+}
+
+.ch-cream { /* 17.1:1 */
+	--ground: #f3efe6;
+	--on: #0b0b0c;
+	--on-2: rgba(11, 11, 12, 0.76);
+	--on-3: rgba(11, 11, 12, 0.56);
+	--on-4: rgba(11, 11, 12, 0.36);
+	--line: rgba(11, 11, 12, 0.12);
+	--line-strong: rgba(11, 11, 12, 0.28);
+	--guide: rgba(11, 11, 12, 0.07);
+	--shadow-ink: rgba(11, 11, 12, 0.8);
+	--gold: #8a6b1f;
+}
+
+/* Column guides, drawn per chapter so they tint with the ground rather than
    being one fixed overlay the whole page shares. */
 .bg-grid::before {
 	content: '';
@@ -209,8 +296,8 @@
 	pointer-events: none;
 	background-image: repeating-linear-gradient(
 		to right,
-		color-mix(in srgb, var(--on) 9%, transparent) 0,
-		color-mix(in srgb, var(--on) 9%, transparent) 1px,
+		var(--guide) 0,
+		var(--guide) 1px,
 		transparent 1px,
 		transparent calc(100% / 12)
 	);
@@ -219,8 +306,6 @@
 	background-repeat: no-repeat;
 }
 
-/* The page grid: twelve columns everywhere, which is what lets work items
-   span 4 or 6 and still line up with the guides behind them. */
 .grid-page {
 	display: grid;
 	grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -246,15 +331,15 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
-	/* Behind the chapters. Any gap should read as paper, never as a leftover
-	   ground from an earlier design. */
-	background: #fbfbf8;
+	/* Behind the chapters. Any gap reads as the scheme's black rather than
+	   flashing white between grounds. */
+	background: #0b0b0c;
 }
 
 body {
 	margin: 0;
-	background: #fbfbf8;
-	color: #0b0b0c;
+	background: #0b0b0c;
+	color: #f3efe6;
 	font-family: var(--font);
 	font-size: 1rem;
 	line-height: 1.5;
