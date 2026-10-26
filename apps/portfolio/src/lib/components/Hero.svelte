@@ -39,11 +39,25 @@
 	/* ─── Name, split for a staggered line reveal ───────────────────────────
 	   Split on words rather than characters: per-character reveals on a name
 	   read as an effect, per-word reads as typesetting. */
-	$: words = name.trim().split(/\s+/);
+	/**
+	 * The hero sentence. Split into parts so each can take its own weight and
+	 * its own reveal delay — the emphasis is the design, so it is data rather
+	 * than markup.
+	 */
+	const HEADLINE = [
+		{ text: 'I', weight: 'light' },
+		{ text: 'build', weight: '' },
+		{ text: 'systems', weight: '' },
+		{ text: 'that', weight: 'light' },
+		{ text: 'think.', weight: 'mid' }
+	];
 
 	let revealed = false;
+	/** Only hide-then-reveal once JS is live to undo it. */
+	let canAnimate = false;
 	onMount(() => {
 		// One frame, so the initial state paints before the transition starts.
+		canAnimate = true;
 		requestAnimationFrame(() => (revealed = true));
 	});
 
@@ -53,7 +67,7 @@
 
 </script>
 
-<section id="top" class="hero">
+<section id="top" class="hero" class:hero-anim={canAnimate}>
 	<div class="shell hero-inner">
 		<div class="hero-copy">
 			{#if openToWork}
@@ -63,17 +77,23 @@
 				</p>
 			{/if}
 
-			<h1 class="t-hero hero-name">
-				{#each words as word, i}
+			<!-- One sentence, set enormous, with the weight changing inside it.
+			     On a single-colour field there is no second colour to emphasise
+			     with, so weight does that job: the nouns carry the sentence and
+			     the connective words step back. -->
+			<h1 class="t-hero hero-line">
+				{#each HEADLINE as part, i}
 					<span class="line">
-						<span class="line-in" class:in={revealed} style={`transition-delay:${90 + i * 70}ms`}>
-							{word}
-						</span>
+						<span
+							class="line-in {part.weight}"
+							class:in={revealed}
+							style={`transition-delay:${120 + i * 90}ms`}
+						>{part.text}</span>
 					</span>{' '}
 				{/each}
 			</h1>
 
-			<p class="t-lead hero-tagline" class:in={revealed}>{tagline}</p>
+			<p class="t-lead hero-tagline" class:in={revealed}>{name} — {tagline}</p>
 
 			<div class="hero-meta" class:in={revealed}>
 				{#if location}
@@ -170,29 +190,42 @@
 	/* ─── Entrance ───────────────────────────────────────────────────────────
 	   The hero is the one place with a scripted entrance, because nothing can
 	   interrupt a page's first paint. Everything else responds to input. */
+	/* No clip-reveal here any more. Masking each word with overflow:hidden
+	   worked at the old size, but this headline sets at up to 7rem with
+	   leading below 1, so the mask cropped ascenders and descenders. A
+	   fade-and-rise needs no mask and cannot clip. */
 	.line {
 		display: inline-block;
-		overflow: hidden;
-		/* The slack stops `overflow: hidden` shaving the right side bearing of
-		   a heavy glyph while it masks the vertical slide. */
-		padding-right: 0.08em;
-		margin-right: -0.08em;
-		vertical-align: bottom;
 	}
+	/* Visible by default, and the reveal only ever ADDS motion.
+	   The previous version defaulted to opacity:0 and relied on a class
+	   arriving to undo it — so when the reveal didn't fire, most of the
+	   headline simply wasn't there. A hero sentence must never depend on an
+	   animation succeeding in order to be readable. */
 	.line-in {
 		display: inline-block;
-		transform: translateY(100%);
-		transition: transform 900ms var(--ease-out);
+		opacity: 1;
+		transform: none;
+	}
+	.hero-anim .line-in {
+		opacity: 0;
+		transform: translateY(0.22em);
+		transition: opacity 620ms var(--ease-out), transform 820ms var(--ease-out);
+	}
+	.hero-anim .line-in.in {
+		opacity: 1;
+		transform: translateY(0);
 	}
 	.line-in.in {
+		opacity: 1;
 		transform: translateY(0);
 	}
 
-	.hero-status,
-	.hero-tagline,
-	.hero-meta,
-	.hero-actions,
-	.hero-stage {
+	.hero-anim .hero-status,
+	.hero-anim .hero-tagline,
+	.hero-anim .hero-meta,
+	.hero-anim .hero-actions,
+	.hero-anim .hero-stage {
 		opacity: 0;
 		transform: translateY(10px);
 		transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
@@ -238,8 +271,8 @@
 		margin-bottom: 1.5rem;
 	}
 
-	.hero-name {
-		margin-bottom: 1.25rem;
+	.hero-line {
+		margin-bottom: 1.5rem;
 	}
 
 	.hero-tagline {
