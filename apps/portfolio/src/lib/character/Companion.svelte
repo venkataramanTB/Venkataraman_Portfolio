@@ -20,7 +20,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { Spring, drive, project, SPRINGS, springConfig, prefersReducedMotion } from '$lib/motion/spring.js';
 	import { draggable } from '$lib/motion/gestures.js';
-	import Character3D from '$lib/character3d/Character3D.svelte';
+	import SoftFigure from './SoftFigure.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import { GREETING, SECTIONS, REACTIONS, TRICKS, pick } from './script.js';
 
@@ -766,7 +766,7 @@
 				on:pointerdown={onPoke}
 				role="presentation"
 			>
-				<Character3D animation={anim} {lean} {facing} {lookX} {lookY} />
+				<SoftFigure animation={anim} {lean} {facing} {lookX} {lookY} />
 			</div>
 
 			<!-- Controls -->

@@ -3,113 +3,80 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   FIELD — design system
+   SOFT — design system
    ──────────────────────────────────────────────────────────────────────────────
-   The page is one saturated colour from edge to edge. Not a background behind
-   content: the ground everything sits on. Three consequences drive every rule
-   below.
+   A warm, calm product interface: large soft surfaces, friendly type,
+   generous space, one quiet accent.
 
-   1. NO CARDS, NO PANELS, NO ELEVATION. A soft shadow needs a neutral
-      substrate to fall on; over a saturated field it turns to mud. Separation
-      comes from outlines, hard offset shadows and the grid instead.
-   2. TYPE IS THE LAYOUT. With no boxes to arrange, scale and weight do the
-      work — which is why the headline is enormous and changes weight
-      mid-sentence.
-   3. THE GRID IS VISIBLE. Column guides are drawn one shade up from the
-      field, so the structure the layout follows is on show rather than
-      implied.
-
-   This replaces Aperture, whose material/elevation hierarchy is the exact
-   thing a colour field cannot support.
+   This REPLACES the component vocabulary rather than recolouring it. The
+   previous passes kept the same furniture — a floating pill nav, outlined
+   transparent blocks, hard offset shadows, a visible column grid, enormous
+   tight-tracked display type — and changed only the palette, which is why
+   each one still read as the same site. All of that is gone. In its place:
+   solid white cards on warm paper, soft layered shadow, a plain top bar, and
+   type that is comfortable rather than shouty.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-	color-scheme: dark; /* off-white on a saturated ground behaves like dark mode */
+	color-scheme: light;
 
-	/* ─── The field ──────────────────────────────────────────────────────────
-	   Deep vermilion. Chosen against the off-white below at 5.32:1, which
-	   clears AA for body text, and chosen warm so it is nobody else's blue.
-	   This is the one value to change to rebrand the entire site. */
-	--field: #c2341f;
-	--field-deep: #a62a18; /* recessed bands, pressed states */
-	--field-lift: #d04430; /* the grid guides, hairlines, hovers */
+	/* ─── Paper ──────────────────────────────────────────────────────────────
+	   Warm rather than blue-grey. A neutral this warm makes a white surface
+	   sitting on it read as lifted without needing a heavy shadow. */
+	--paper: #f7f5f2;
+	--paper-sunk: #efebe6;
+	--surface: #ffffff;
+	--surface-2: #fbfaf8;
 
-	/* ─── Ink ────────────────────────────────────────────────────────────────
-	   One off-white, stepped down by opacity. Mixing in grey would dirty it
-	   against a saturated ground. */
-	--ink: #fbfbf8;
-	--ink-2: rgba(251, 251, 248, 0.82);
-	--ink-3: rgba(251, 251, 248, 0.64);
-	--ink-4: rgba(251, 251, 248, 0.46);
+	/* ─── Ink ──── warm near-black, never pure. 15.4:1 on paper. ─────────── */
+	--ink: #1f1d1b;
+	--ink-2: #5a5550;
+	--ink-3: #8a837c;
+	--ink-4: #b4ada5;
 
-	/* Legacy names from the previous system, kept so every component keeps
-	   working while the aesthetic changes underneath them. */
-	--bg: var(--field);
-	--bg-sunk: var(--field-deep);
-	--bg-raised: var(--field-lift);
-	--text: var(--ink);
-	--text-2: var(--ink-2);
-	--text-3: var(--ink-3);
-	--text-4: var(--ink-4);
+	/* ─── The accent ─────────────────────────────────────────────────────────
+	   Deep teal, chosen by measurement: 5.47:1 against white so it carries
+	   white button text, and 5.03:1 on paper so it also works as link text.
+	   One accent, used calmly. */
+	--accent: #17766a;
+	--accent-hover: #126055;
+	--accent-soft: #e4f0ed;
+	--accent-ink: #0f5349;
 
-	--hairline: rgba(251, 251, 248, 0.22);
-	--hairline-strong: rgba(251, 251, 248, 0.42);
-	--border: rgba(251, 251, 248, 0.3);
+	--live: #1f8a4d;
+	--warn: #b06f12;
+	--bad: #c0392f;
 
-	/* The accent on a coloured field is the absence of colour. */
-	--accent: var(--ink);
-	--accent-soft: rgba(251, 251, 248, 0.16);
-	--accent-text: var(--ink);
+	/* Separation is carried by surface and space here, so a border is a last
+	   resort rather than the default. */
+	--line: rgba(31, 29, 27, 0.08);
+	--line-strong: rgba(31, 29, 27, 0.16);
 
-	--fill: var(--ink);
-	--fill-text: #1b0c08;
+	/* ─── Depth ──────────────────────────────────────────────────────────────
+	   Soft and layered: a tight contact shadow plus a wide ambient one, both
+	   at low opacity — on warm paper a heavy shadow reads as grime. */
+	--sh-1: 0 1px 2px rgba(31, 29, 27, 0.04), 0 2px 6px rgba(31, 29, 27, 0.03);
+	--sh-2: 0 2px 4px rgba(31, 29, 27, 0.04), 0 10px 24px rgba(31, 29, 27, 0.06);
+	--sh-3: 0 4px 10px rgba(31, 29, 27, 0.05), 0 20px 48px rgba(31, 29, 27, 0.09);
 
-	/* Status still has to read, so these stay chromatic — but muted enough
-	   not to fight the field. */
-	--live: #7ee787;
-	--warn: #ffd479;
-	--bad: #ffb3a7;
-
-	/* ─── Shadow ─────────────────────────────────────────────────────────────
-	   Hard offsets, no blur. A blurred shadow over a saturated colour reads as
-	   dirt; a hard one reads as a deliberate second layer. */
-	--shadow-ink: #1b0c08;
-	--e1: 3px 3px 0 var(--shadow-ink);
-	--e2: 5px 5px 0 var(--shadow-ink);
-	--e3: 8px 8px 0 var(--shadow-ink);
-	--e-ring: none;
-
-	/* ─── Radii ──────────────────────────────────────────────────────────────
-	   Pills for controls, modest radii for blocks. */
-	--r-xs: 4px;
-	--r-sm: 6px;
-	--r-md: 10px;
-	--r-lg: 14px;
-	--r-xl: 20px;
+	/* ─── Radii ── generous; the scale starts where the last one topped out. */
+	--r-xs: 8px;
+	--r-sm: 12px;
+	--r-md: 18px;
+	--r-lg: 24px;
+	--r-xl: 32px;
+	--r-2xl: 40px;
 	--r-full: 999px;
 
-	/* ─── Type ───────────────────────────────────────────────────────────── */
 	--font: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI',
 		Roboto, system-ui, sans-serif;
-	--font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
+	--font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
 
-	--gutter: clamp(1.25rem, 5vw, 3rem);
-
-	/* The character now has a column of his own (see .tour below) rather than
-	   a reserved margin, so this stays at zero. Kept because `.shell` still
-	   reads it and a future floating element may want it back. */
+	--gutter: clamp(1.25rem, 4vw, 2.5rem);
+	--shell: 74rem;
+	--shell-wide: 86rem;
+	--stage-w: 24rem;
 	--lane: 0rem;
-
-	/* His column. Wide enough for the figure at stage size plus his speech. */
-	--stage-w: 27rem;
-	--shell: 82rem;
-	--shell-wide: 94rem;
-
-	/* Below this there is no room for a lane, so he gets none. */
-	--lane-min: 64rem;
-
-	/* Columns the visible guides are drawn on, and the layout follows. */
-	--cols: 12;
 
 	--z-base: 0;
 	--z-raised: 10;
@@ -121,21 +88,75 @@
 	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 	--ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 	--ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+	/* Legacy aliases. A dozen components still reference the old token names;
+	   mapping them is safer than find-and-replacing across every rule. */
+	--bg: var(--paper);
+	--bg-sunk: var(--paper-sunk);
+	--bg-raised: var(--surface);
+	--text: var(--ink);
+	--text-2: var(--ink-2);
+	--text-3: var(--ink-3);
+	--text-4: var(--ink-4);
+	--hairline: var(--line);
+	--hairline-strong: var(--line-strong);
+	--border: var(--line);
+	--field-deep: var(--paper-sunk);
+	--field-lift: var(--surface);
+	--accent-text: var(--accent-ink);
+	--fill: var(--accent);
+	--fill-text: #ffffff;
+	--shadow-ink: transparent;
+	--e1: var(--sh-1);
+	--e2: var(--sh-2);
+	--e3: var(--sh-3);
+	--e-ring: none;
 }
 
-/* A deeper field after dark. The system is one colour, so "dark mode" means
-   turning that colour down rather than swapping a palette. */
+/* Dark is a dimmed version of the same warm system, not an inversion. */
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) {
-		--field: #8f2615;
-		--field-deep: #731d10;
-		--field-lift: #a3311e;
+		color-scheme: dark;
+		--paper: #17161a;
+		--paper-sunk: #111013;
+		--surface: #201f24;
+		--surface-2: #26242b;
+		--ink: #f4f1ed;
+		--ink-2: #b5afa8;
+		--ink-3: #8b857e;
+		--ink-4: #5f5a55;
+		--accent: #3fb3a1;
+		--accent-hover: #55c4b2;
+		--accent-soft: #16302d;
+		--accent-ink: #6fd0c0;
+		--line: rgba(244, 241, 237, 0.1);
+		--line-strong: rgba(244, 241, 237, 0.2);
+		--sh-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+		--sh-2: 0 6px 20px rgba(0, 0, 0, 0.42);
+		--sh-3: 0 16px 44px rgba(0, 0, 0, 0.5);
+		--fill-text: #0d1715;
 	}
 }
 :root[data-theme='dark'] {
-	--field: #8f2615;
-	--field-deep: #731d10;
-	--field-lift: #a3311e;
+	color-scheme: dark;
+	--paper: #17161a;
+	--paper-sunk: #111013;
+	--surface: #201f24;
+	--surface-2: #26242b;
+	--ink: #f4f1ed;
+	--ink-2: #b5afa8;
+	--ink-3: #8b857e;
+	--ink-4: #5f5a55;
+	--accent: #3fb3a1;
+	--accent-hover: #55c4b2;
+	--accent-soft: #16302d;
+	--accent-ink: #6fd0c0;
+	--line: rgba(244, 241, 237, 0.1);
+	--line-strong: rgba(244, 241, 237, 0.2);
+	--sh-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+	--sh-2: 0 6px 20px rgba(0, 0, 0, 0.42);
+	--sh-3: 0 16px 44px rgba(0, 0, 0, 0.5);
+	--fill-text: #0d1715;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -148,21 +169,21 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
-	background: var(--field);
+	background: var(--paper);
 }
 
 body {
 	margin: 0;
-	background: var(--field);
+	background: var(--paper);
 	color: var(--ink);
 	font-family: var(--font);
 	font-size: 1rem;
-	line-height: 1.5;
+	line-height: 1.6;
 	font-optical-sizing: auto;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	overflow-x: clip;
-	transition: background-color 500ms var(--ease-soft);
+	transition: background-color 400ms var(--ease-soft), color 400ms var(--ease-soft);
 }
 
 img,
@@ -173,15 +194,15 @@ video {
 }
 
 ::selection {
-	background: var(--ink);
-	color: var(--field);
+	background: var(--accent-soft);
+	color: var(--accent-ink);
 }
 
 :focus {
 	outline: none;
 }
 :focus-visible {
-	outline: 2.5px solid var(--ink);
+	outline: 2.5px solid var(--accent);
 	outline-offset: 3px;
 	border-radius: var(--r-xs);
 }
@@ -191,14 +212,14 @@ video {
 	top: 0.75rem;
 	left: 0.75rem;
 	z-index: var(--z-modal);
-	padding: 0.625rem 1rem;
+	padding: 0.75rem 1.125rem;
 	border-radius: var(--r-full);
-	background: var(--ink);
-	color: var(--field);
-	font-size: 0.8125rem;
+	background: var(--accent);
+	color: #fff;
+	font-size: 0.875rem;
 	font-weight: 600;
 	text-decoration: none;
-	box-shadow: var(--e1);
+	box-shadow: var(--sh-2);
 	transform: translateY(-200%);
 	transition: transform 220ms var(--ease-out);
 }
@@ -220,142 +241,103 @@ video {
 
 @supports selector(::-webkit-scrollbar) {
 	::-webkit-scrollbar {
-		width: 11px;
+		width: 12px;
 	}
 	::-webkit-scrollbar-track {
-		background: var(--field-deep);
+		background: transparent;
 	}
 	::-webkit-scrollbar-thumb {
 		background: var(--ink-4);
+		border: 4px solid var(--paper);
 		border-radius: var(--r-full);
 	}
-	::-webkit-scrollbar-thumb:hover {
-		background: var(--ink-2);
-	}
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   THE GRID
-   Fixed, behind everything, one shade up from the field. The layout uses the
-   same column count, so the guides are a description of the structure rather
-   than decoration laid over it.
-   ══════════════════════════════════════════════════════════════════════════════ */
-
+/* The visible column grid belonged to the previous system and is deliberately
+   not drawn: this one separates with space, not lines. */
 .guides {
-	position: fixed;
-	inset: 0;
-	z-index: var(--z-base);
-	pointer-events: none;
-}
-.guides-inner {
-	display: grid;
-	grid-template-columns: repeat(var(--cols), 1fr);
-	height: 100%;
-	max-width: var(--shell-wide);
-	margin-inline: auto;
-	padding-inline: var(--gutter);
-}
-.guide-col {
-	border-left: 1px solid var(--field-lift);
-}
-.guide-col:last-child {
-	border-right: 1px solid var(--field-lift);
-}
-@media (max-width: 60rem) {
-	:root {
-		--cols: 6;
-	}
-}
-@media (max-width: 34rem) {
-	:root {
-		--cols: 4;
-	}
+	display: none;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    TYPOGRAPHY
-   With no boxes to arrange, type carries the layout. Tracking is size-specific;
-   leading tightens as size grows.
+   Comfortable rather than shouty. The last system shouted because it had no
+   boxes to organise with; this one has surfaces, so the type can relax.
    ══════════════════════════════════════════════════════════════════════════════ */
 
-/* The headline. Deliberately enormous — this is the whole hero. */
 .t-hero {
-	font-size: clamp(2.75rem, 8.4vw, 7rem);
-	font-weight: 700;
-	line-height: 0.92;
-	letter-spacing: -0.045em;
+	font-size: clamp(2.25rem, 5vw, 3.75rem);
+	font-weight: 680;
+	line-height: 1.08;
+	letter-spacing: -0.028em;
 	text-wrap: balance;
 	margin: 0;
 }
-
-/* Weight changes inside one sentence are how emphasis works here, instead of
-   colour — there is only one colour. */
 .t-hero .light {
-	font-weight: 300;
+	font-weight: 400;
+	color: var(--ink-2);
 }
 .t-hero .mid {
-	font-weight: 500;
+	font-weight: 600;
 }
 
 .t-display {
-	font-size: clamp(2.25rem, 6vw, 4.5rem);
-	font-weight: 650;
-	line-height: 1;
-	letter-spacing: -0.035em;
+	font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+	font-weight: 660;
+	line-height: 1.15;
+	letter-spacing: -0.022em;
 	text-wrap: balance;
 	margin: 0;
 }
 
 .t-title {
-	font-size: clamp(1.5rem, 2.6vw, 2.125rem);
-	font-weight: 600;
-	line-height: 1.12;
-	letter-spacing: -0.024em;
+	font-size: 1.3125rem;
+	font-weight: 640;
+	line-height: 1.3;
+	letter-spacing: -0.014em;
 	text-wrap: balance;
 	margin: 0;
 }
 
 .t-head {
-	font-size: 1.125rem;
-	font-weight: 600;
-	line-height: 1.3;
-	letter-spacing: -0.014em;
+	font-size: 1.0625rem;
+	font-weight: 620;
+	line-height: 1.4;
+	letter-spacing: -0.008em;
 	margin: 0;
 }
 
 .t-body {
-	font-size: 1.0625rem;
-	line-height: 1.6;
-	letter-spacing: -0.004em;
+	font-size: 1rem;
+	line-height: 1.68;
 	color: var(--ink-2);
-	max-width: 60ch;
+	max-width: 62ch;
 	text-wrap: pretty;
 	margin: 0;
 }
 
 .t-lead {
-	font-size: clamp(1.125rem, 1.9vw, 1.5rem);
+	font-size: clamp(1.0625rem, 1.4vw, 1.1875rem);
 	font-weight: 400;
-	line-height: 1.42;
-	letter-spacing: -0.016em;
+	line-height: 1.6;
+	letter-spacing: -0.008em;
 	color: var(--ink-2);
-	max-width: 48ch;
+	max-width: 54ch;
 	text-wrap: pretty;
 	margin: 0;
 }
 
 .t-small {
 	font-size: 0.9375rem;
-	line-height: 1.5;
+	line-height: 1.55;
 	color: var(--ink-3);
 	margin: 0;
 }
 
 .t-label {
-	font-size: 0.75rem;
+	font-size: 0.8125rem;
 	font-weight: 600;
-	line-height: 1.3;
-	letter-spacing: 0.02em;
+	line-height: 1.4;
 	color: var(--ink-3);
 	margin: 0;
 }
@@ -367,15 +349,19 @@ video {
 	color: var(--ink-3);
 }
 
+/* The eyebrow is a soft accent pill now, not uppercase tracked-out micro-type. */
 .t-eyebrow {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.5rem;
-	font-size: 0.75rem;
-	font-weight: 600;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	color: var(--ink-3);
+	gap: 0.4375rem;
+	padding: 0.3125rem 0.75rem;
+	border-radius: var(--r-full);
+	background: var(--accent-soft);
+	color: var(--accent-ink);
+	font-size: 0.8125rem;
+	font-weight: 620;
+	letter-spacing: 0;
+	text-transform: none;
 	margin: 0;
 }
 
@@ -393,31 +379,42 @@ video {
 	max-width: var(--shell);
 	margin-inline: auto;
 	padding-inline: var(--gutter);
-	/* The lane is added to the leading inset, never subtracted from the
-	   content width, so reserving it can't squeeze the measure. */
-	padding-left: calc(var(--gutter) + var(--lane));
+}
+.shell-wide {
+	max-width: var(--shell-wide);
 }
 
-/* ══════════════════════════════════════════════════════════════════════════════
-   THE TOUR
-   The character is not a widget on this page — he is the page. He gets a
-   sticky column of his own that he never leaves, and the content scrolls past
-   him as a series of scenes he introduces.
+.section {
+	position: relative;
+	padding-block: clamp(3.5rem, 8vh, 6rem);
+	scroll-margin-top: 6rem;
+	border-top: 0; /* space separates sections here, not rules */
+}
 
-   Two columns rather than an overlay, because an overlay would mean he either
-   covers the copy or has to keep dodging it. A column cannot overlap by
-   construction.
-   ══════════════════════════════════════════════════════════════════════════════ */
+.section-head {
+	display: flex;
+	flex-direction: column;
+	gap: 0.875rem;
+	margin-bottom: clamp(2rem, 4vh, 3rem);
+	max-width: 44rem;
+}
+
+.hairline {
+	height: 1px;
+	border: 0;
+	margin: 0;
+	background: var(--line);
+}
+
+/* ─── The tour ─────────────────────────────────────────────────────────────── */
 
 .tour {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 }
-
 .tour-stage {
-	display: none; /* no room below the breakpoint; he docks to a corner there */
+	display: none;
 }
-
 .tour-scenes {
 	min-width: 0;
 }
@@ -427,82 +424,50 @@ video {
 		grid-template-columns: var(--stage-w) minmax(0, 1fr);
 		align-items: start;
 	}
-
 	.tour-stage {
 		display: block;
 		position: sticky;
 		top: 0;
-		/* Full height so he stands on the floor of the viewport whatever is
-		   scrolling past him. */
 		height: 100svh;
 		pointer-events: none;
 	}
-
-	/* Inside the tour the sections are already inset by the stage column, so
-	   their own shell only pads and never re-centres — otherwise the content
-	   would drift back toward the middle of the window and reopen the gap the
-	   column was meant to close. */
 	.tour-scenes .shell {
-		max-width: 60rem;
+		max-width: 56rem;
 		margin-inline: 0;
 		padding-left: var(--gutter);
 	}
 }
-.shell-wide {
-	max-width: var(--shell-wide);
-}
-
-.section {
-	position: relative;
-	padding-block: clamp(5rem, 14vh, 11rem);
-	scroll-margin-top: 6rem;
-	border-top: 1px solid var(--hairline);
-}
-
-.section-head {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	margin-bottom: clamp(2.5rem, 6vh, 4rem);
-	max-width: 46rem;
-}
-
-.hairline {
-	height: 1px;
-	border: 0;
-	margin: 0;
-	background: var(--hairline);
-}
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   BLOCKS
-   What used to be cards. Outlined, flat, with a hard offset shadow — the only
-   kind of depth a colour field supports.
+   SURFACES
+   The card is the system: solid, generously padded, softly lifted, and with
+   no border at rest — the surface itself is the separation.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .card {
 	position: relative;
-	background: transparent;
-	border: 1.5px solid var(--border);
-	border-radius: var(--r-lg);
+	background: var(--surface);
+	border: 0;
+	border-radius: var(--r-xl);
+	box-shadow: var(--sh-1);
 	overflow: hidden;
-	transition: border-color 220ms var(--ease-soft), transform 220ms var(--ease-out),
-		box-shadow 220ms var(--ease-out), background-color 220ms var(--ease-soft);
+	transition: box-shadow 260ms var(--ease-soft), transform 260ms var(--ease-out);
 }
 .card:hover {
-	border-color: var(--ink);
+	box-shadow: var(--sh-2);
+	transform: translateY(-2px);
 }
 
-/* The glass tiers collapse to solid blocks: translucency over a saturated
-   field muddies both the field and whatever is behind it. */
+/* Chrome is solid and quiet. The glass tiers collapse to plain surfaces:
+   translucency was doing a job that space now does. */
 .material,
 .material-thin,
 .material-thick {
-	background: var(--field);
-	border: 1.5px solid var(--ink);
+	background: var(--surface);
+	border: 0;
 	-webkit-backdrop-filter: none;
 	backdrop-filter: none;
-	box-shadow: var(--e2);
+	box-shadow: var(--sh-2);
 }
 
 .lume::after {
@@ -523,61 +488,55 @@ video {
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
-	padding: 0.75rem 1.25rem;
+	padding: 0.8125rem 1.375rem;
 	border-radius: var(--r-full);
-	border: 1.5px solid var(--ink);
-	background: transparent;
+	border: 0;
+	background: var(--surface);
 	color: var(--ink);
 	font-family: inherit;
 	font-size: 0.9375rem;
 	font-weight: 600;
-	letter-spacing: -0.008em;
+	letter-spacing: -0.006em;
 	line-height: 1;
 	text-decoration: none;
 	cursor: pointer;
 	white-space: nowrap;
-	box-shadow: var(--e1);
-	transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out),
-		background-color 180ms var(--ease-soft), color 180ms var(--ease-soft);
+	box-shadow: var(--sh-1);
+	transition: background-color 200ms var(--ease-soft), box-shadow 200ms var(--ease-soft),
+		transform 140ms var(--ease-out), color 200ms var(--ease-soft);
 	-webkit-tap-highlight-color: transparent;
 }
-/* The press: the button travels into its own shadow. */
 .btn:hover {
-	transform: translate(-1px, -1px);
-	box-shadow: var(--e2);
+	box-shadow: var(--sh-2);
+	transform: translateY(-1px);
 }
 .btn:active {
-	transform: translate(3px, 3px);
-	box-shadow: 0 0 0 var(--shadow-ink);
+	transform: translateY(0) scale(0.98);
+	box-shadow: var(--sh-1);
 }
 
 .btn-primary {
-	background: var(--ink);
-	color: var(--field);
+	background: var(--accent);
+	color: #fff;
 }
 .btn-primary:hover {
-	background: var(--ink);
+	background: var(--accent-hover);
 }
 
 .btn-quiet {
-	border-color: transparent;
+	background: transparent;
 	box-shadow: none;
 	color: var(--ink-2);
 }
 .btn-quiet:hover {
-	border-color: transparent;
+	background: var(--paper-sunk);
 	box-shadow: none;
+	transform: none;
 	color: var(--ink);
-	transform: none;
-	background: var(--field-lift);
-}
-.btn-quiet:active {
-	transform: none;
-	box-shadow: none;
 }
 
 .btn-sm {
-	padding: 0.5rem 0.875rem;
+	padding: 0.5625rem 0.9375rem;
 	font-size: 0.875rem;
 }
 
@@ -592,14 +551,14 @@ video {
 .chip {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.375rem;
-	padding: 0.3125rem 0.6875rem;
+	gap: 0.4375rem;
+	padding: 0.375rem 0.75rem;
 	border-radius: var(--r-full);
-	border: 1.5px solid var(--border);
-	background: transparent;
+	border: 0;
+	background: var(--paper-sunk);
 	color: var(--ink-2);
-	font-size: 0.8125rem;
-	font-weight: 500;
+	font-size: 0.84375rem;
+	font-weight: 520;
 	white-space: nowrap;
 }
 
@@ -607,46 +566,45 @@ video {
 	width: 0.4375rem;
 	height: 0.4375rem;
 	border-radius: var(--r-full);
-	background: currentColor;
+	background: var(--accent);
 	flex-shrink: 0;
 }
 
 .chip-live {
-	color: var(--ink);
-	border-color: var(--ink);
+	background: var(--accent-soft);
+	color: var(--accent-ink);
 }
 .chip-live .chip-dot {
 	background: var(--live);
-	animation: breathe 2.4s var(--ease-soft) infinite;
+	animation: breathe 2.6s var(--ease-soft) infinite;
 }
 @keyframes breathe {
 	0%,
 	100% {
 		opacity: 1;
-		transform: scale(1);
 	}
 	50% {
-		opacity: 0.45;
-		transform: scale(0.82);
+		opacity: 0.4;
 	}
 }
 
-/* ─── Segmented control ────────────────────────────────────────────────────── */
+/* ─── Segmented ────────────────────────────────────────────────────────────── */
 
 .segmented {
 	display: inline-flex;
 	position: relative;
 	padding: 0.25rem;
 	border-radius: var(--r-full);
-	background: transparent;
-	border: 1.5px solid var(--border);
+	background: var(--paper-sunk);
+	border: 0;
 }
 .segmented-thumb {
 	position: absolute;
 	top: 0.25rem;
 	bottom: 0.25rem;
 	border-radius: var(--r-full);
-	background: var(--ink);
+	background: var(--surface);
+	box-shadow: var(--sh-1);
 	will-change: transform, width;
 	pointer-events: none;
 }
@@ -656,11 +614,11 @@ video {
 	appearance: none;
 	border: 0;
 	background: transparent;
-	padding: 0.4375rem 0.875rem;
+	padding: 0.5rem 0.9375rem;
 	border-radius: var(--r-full);
 	font-family: inherit;
-	font-size: 0.84375rem;
-	font-weight: 600;
+	font-size: 0.875rem;
+	font-weight: 560;
 	color: var(--ink-3);
 	cursor: pointer;
 	white-space: nowrap;
@@ -670,52 +628,52 @@ video {
 .segment[aria-selected='true'],
 .segment[aria-checked='true'],
 .segment[aria-pressed='true'] {
-	color: var(--field);
+	color: var(--ink);
 }
 
 /* ─── Link ─────────────────────────────────────────────────────────────────── */
 
 .link {
-	color: var(--ink);
+	color: var(--accent-ink);
 	text-decoration: none;
 	background-image: linear-gradient(currentColor, currentColor);
 	background-repeat: no-repeat;
 	background-position: 0 100%;
-	background-size: 100% 1.5px;
-	transition: background-size 280ms var(--ease-out);
+	background-size: 100% 1px;
+	transition: background-size 260ms var(--ease-out), color 200ms var(--ease-soft);
 }
 .link:hover {
-	background-size: 100% 3px;
+	background-size: 100% 2px;
 }
 .link-quiet {
 	color: var(--ink-2);
-	background-size: 0% 1.5px;
+	background-size: 0% 1px;
 }
 .link-quiet:hover {
 	color: var(--ink);
-	background-size: 100% 1.5px;
+	background-size: 100% 1px;
 }
 
 /* ─── Input ────────────────────────────────────────────────────────────────── */
 
 .field {
 	width: 100%;
-	padding: 0.8125rem 1rem;
+	padding: 0.875rem 1.0625rem;
 	border-radius: var(--r-md);
-	border: 1.5px solid var(--border);
-	background: var(--field-deep);
+	border: 1.5px solid transparent;
+	background: var(--paper-sunk);
 	color: var(--ink);
 	font-family: inherit;
 	font-size: 1rem;
-	line-height: 1.45;
-	transition: border-color 180ms var(--ease-soft), box-shadow 180ms var(--ease-out);
+	line-height: 1.5;
+	transition: border-color 180ms var(--ease-soft), background-color 180ms var(--ease-soft);
 }
 .field::placeholder {
 	color: var(--ink-4);
 }
 .field:focus {
-	border-color: var(--ink);
-	box-shadow: var(--e1);
+	background: var(--surface);
+	border-color: var(--accent);
 }
 .field:disabled {
 	opacity: 0.5;
@@ -724,15 +682,15 @@ video {
 /* ─── Meter ────────────────────────────────────────────────────────────────── */
 
 .meter {
-	height: 4px;
+	height: 6px;
 	border-radius: var(--r-full);
-	background: var(--hairline);
+	background: var(--paper-sunk);
 	overflow: hidden;
 }
 .meter-fill {
 	height: 100%;
 	border-radius: inherit;
-	background: var(--ink);
+	background: var(--accent);
 	transform-origin: left center;
 }
 
@@ -741,7 +699,7 @@ video {
 .skel {
 	position: relative;
 	overflow: hidden;
-	background: var(--field-deep);
+	background: var(--paper-sunk);
 	border-radius: var(--r-sm);
 }
 .skel::after {
@@ -749,29 +707,13 @@ video {
 	position: absolute;
 	inset: 0;
 	transform: translateX(-100%);
-	background: linear-gradient(90deg, transparent, var(--hairline), transparent);
-	animation: sweep 1.5s var(--ease-soft) infinite;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+	animation: sweep 1.6s var(--ease-soft) infinite;
 }
 @keyframes sweep {
 	to {
 		transform: translateX(100%);
 	}
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   SCROLL REVEAL
-   Set by the reveal action. Declared here so a no-JS visitor still sees
-   everything — the hidden state is only applied once JS confirms it can undo it.
-   ══════════════════════════════════════════════════════════════════════════════ */
-
-.reveal-hidden {
-	opacity: 0;
-	transform: translateY(1.5rem);
-}
-.reveal-in {
-	opacity: 1;
-	transform: none;
-	transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -790,9 +732,7 @@ video {
 	.skel::after {
 		animation: none;
 	}
-	.reveal-hidden {
-		transform: none;
-	}
+	.card:hover,
 	.btn:hover,
 	.btn:active {
 		transform: none;
@@ -802,28 +742,23 @@ video {
 @media (prefers-contrast: more) {
 	:root {
 		--ink-2: var(--ink);
-		--ink-3: rgba(251, 251, 248, 0.86);
-		--border: var(--ink);
-		--hairline: rgba(251, 251, 248, 0.5);
+		--ink-3: #4a4540;
+		--line: rgba(31, 29, 27, 0.35);
+	}
+	.card,
+	.btn,
+	.chip {
+		border: 1px solid var(--line);
 	}
 }
 
 @media print {
-	:root {
-		--field: #fff;
-		--field-deep: #fff;
-		--field-lift: #fff;
-		--ink: #000;
-		--ink-2: #222;
-		--ink-3: #444;
-		--shadow-ink: transparent;
-	}
-	.no-print,
-	.guides {
+	.no-print {
 		display: none !important;
 	}
 	.card {
-		border: 1px solid #999;
+		box-shadow: none;
+		border: 1px solid #ccc;
 		break-inside: avoid;
 	}
 }
