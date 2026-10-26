@@ -79,11 +79,15 @@
 
 		// Orthographic: no perspective divergence, which is what makes the
 		// figure read as a toy rather than a photographed person.
+		// Framed tightly on the figure. The camera half-height is just over
+		// half his height, so he fills the render target instead of sitting in
+		// a lake of empty pixels — at this resolution every wasted pixel is a
+		// visible loss of detail.
 		const aspect = RW / RH;
-		const h = 8.2;
+		const h = 6.5;
 		const camera = new THREE.OrthographicCamera(-h * aspect, h * aspect, h, -h, 0.1, 100);
-		camera.position.set(0, 6.2, 22);
-		camera.lookAt(0, 5.6, 0);
+		camera.position.set(0, 5.9, 22);
+		camera.lookAt(0, 5.9, 0);
 
 		// Three lights: a key to carve the facets, a fill so the dark side is
 		// not black, and a rim to lift him off the field behind.

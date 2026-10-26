@@ -107,15 +107,43 @@
 {#key dataKey}
 	<Nav {socialLinks} resumeUrl={profile?.resume_url ?? ''} />
 
-	<main id="main">
-		<Hero {profile} {socialLinks} />
-		<Practice {profile} {stats} {skills} {projects} />
-		<Work {projects} />
-		<Experience {experiences} {education} />
-		<Stack {skills} />
-		<Credentials {certificates} {achievements} />
-		<Contact {profile} {socialLinks} />
-	</main>
+	<!-- The tour.
+	     He occupies the left column for the whole page and never leaves it;
+	     the sections scroll past him on the right as scenes he introduces.
+	     The stage is an empty sticky slot — the Companion measures it and
+	     places himself in it, so his position is a consequence of the layout
+	     rather than a set of magic numbers. -->
+	<div class="tour">
+		<div class="tour-stage" aria-hidden="true">
+			<div id="character-stage" class="stage-slot"></div>
+		</div>
+
+		<main id="main" class="tour-scenes">
+			<Hero {profile} {socialLinks} />
+			<Practice {profile} {stats} {skills} {projects} />
+			<Work {projects} />
+			<Experience {experiences} {education} />
+			<Stack {skills} />
+			<Credentials {certificates} {achievements} />
+			<Contact {profile} {socialLinks} />
+		</main>
+	</div>
 
 	<Footer {profile} {socialLinks} />
 {/key}
+
+<style>
+	/* The slot he stands in. Sized as a share of the viewport so he scales
+	   with the window instead of being pinned to one pixel height, and
+	   bottom-aligned so his feet meet the floor of the column. */
+	.stage-slot {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: clamp(2rem, 9vh, 6rem);
+		height: min(74vh, 40rem);
+	}
+	.tour-stage {
+		position: sticky;
+	}
+</style>

@@ -140,12 +140,6 @@
 			</div>
 		</div>
 
-		<!-- The character's stage.
-		     A real column in the hero grid, not a decoration layered over it:
-		     the headline is laid out around this box, and the Companion
-		     measures it to place himself. Reserving the space is what stops
-		     him ever covering the copy. -->
-		<div id="character-stage" class="hero-stage" class:in={revealed} aria-hidden="true"></div>
 	</div>
 
 	<a
@@ -168,11 +162,9 @@
 		padding-bottom: 5rem;
 	}
 
+	/* One column now: the character has his own, so the hero is pure copy. */
 	.hero-inner {
-		display: grid;
-		grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
-		gap: clamp(2rem, 6vw, 5rem);
-		align-items: center;
+		display: block;
 		width: 100%;
 	}
 

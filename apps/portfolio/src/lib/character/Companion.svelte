@@ -40,13 +40,19 @@
 	const GUIDE_SCALE = 0.44;
 
 	/**
-	 * Where he is in the story:
-	 *   hero  — centre stage in the hero, at full size. He IS the hero image.
-	 *   guide — shrunk into the side lane, still present, still narrating.
-	 *   free  — the visitor threw him somewhere; he stays put until the
-	 *           story moves on.
+	 * Where he is:
+	 *   stage — docked in his own sticky column, at full size, for the whole
+	 *           page. This is the normal state and he never leaves it on his
+	 *           own. Below the layout breakpoint the column is not rendered,
+	 *           so the stage target falls back to a corner.
+	 *   free  — the visitor picked him up and threw him. He stays where he
+	 *           lands until he walks back.
+	 *
+	 * There is no longer a hero/guide handover: he is the page's protagonist
+	 * from first paint to last, so shrinking him into a corner once the hero
+	 * scrolled away was working against the whole idea.
 	 */
-	let mode = 'hero';
+	let mode = 'stage';
 
 	let mounted = false;
 	let hidden = false; // sent to the corner
@@ -75,7 +81,7 @@
 	 * guide lane, but a hero image of a man standing still is a waste of the
 	 * slot — centre stage he gestures up at his own name instead.
 	 */
-	$: anim = pose === 'idle' && mode === 'hero' && !held ? 'point' : pose;
+	$: anim = pose === 'idle' && mode === 'stage' && !held ? 'point' : pose;
 
 	/* ─── Speech ────────────────────────────────────────────────────────── */
 	let bubble = '';
@@ -149,18 +155,21 @@
 	}
 
 	/**
-	 * Centre stage: the slot the Hero reserves for him. He is not placed
-	 * near the hero, he IS the hero image — the slot is a real column in the
-	 * hero's grid, so the headline is laid out around him rather than him
-	 * being pasted on top.
+	 * His stage: the sticky slot in the layout's left column. Because that
+	 * slot is sticky, following it IS following the viewport — he needs no
+	 * scroll maths of his own, and his position is a consequence of the
+	 * layout rather than a pile of magic numbers.
+	 *
+	 * Returns null when the column isn't rendered (narrow screens), and the
+	 * caller falls back to the corner.
 	 */
-	function heroTarget() {
+	function stageTarget() {
 		const slot = document.getElementById('character-stage');
 		if (!slot) return null;
 		const r = slot.getBoundingClientRect();
 		if (r.height < 40) return null;
 
-		const scale = Math.min(r.height / H, 1.1);
+		const scale = Math.min(r.height / H, 1.8);
 		// Centred in the slot, standing on its floor.
 		const p = placeAt(r.left + (r.width - W * scale) / 2, r.bottom, scale);
 		return { scale, x: p.x, y: p.y };
@@ -174,7 +183,7 @@
 
 	/** Move him to wherever the current mode says he belongs. */
 	function restage({ instant = false } = {}) {
-		const t = mode === 'hero' ? heroTarget() ?? guideTarget() : guideTarget();
+		const t = mode === 'stage' ? (stageTarget() ?? guideTarget()) : guideTarget();
 
 		// Turn him to face the page rather than the margin. Centre stage that
 		// means gesturing back toward his own name; in the guide lane on the
@@ -215,9 +224,10 @@
 	/** After being thrown or wandering off, he walks back to his mark. */
 	function scheduleReturn(delay = 4200) {
 		clearTimeout(returnTimer);
+		clearTimeout(beatTimer);
 		returnTimer = setTimeout(() => {
 			if (mode !== 'free' || held || busy) return;
-			mode = window.scrollY < window.innerHeight * 0.5 ? 'hero' : 'guide';
+			mode = 'stage';
 			pose = 'walk';
 			restage();
 			say('Right. Back to work.', { face: 'neutral', pose: 'walk', hold: 1600 });
@@ -303,6 +313,7 @@
 
 	function onDragStart() {
 		held = true;
+		stopSpeaking();
 		// Picked up means he has left his mark; he stays where he's put until
 		// the page moves on and he walks back.
 		mode = 'free';
@@ -380,6 +391,7 @@
 
 	async function doTrick(trick) {
 		if (busy) return;
+		stopSpeaking();
 		busy = true;
 		menuOpen = false;
 
@@ -472,8 +484,7 @@
 					const section = SECTIONS[key];
 					if (!section || narrated.has(key)) continue;
 					narrated.add(key);
-					const line = pick(`sec-${key}`, section.lines);
-					say(line.text, { face: line.face, pose: line.pose });
+					speak(section.beats ?? section.lines ?? []);
 					idleSince = Date.now();
 				}
 			},
@@ -484,6 +495,40 @@
 			const node = document.getElementById(key);
 			if (node) io.observe(node);
 		}
+	}
+
+	/* ─── Monologue ──────────────────────────────────────────────────────
+	   A section is a short monologue, not a caption. Beats are delivered in
+	   order with a gap sized to the line, so he talks at reading speed
+	   instead of dumping a paragraph into one bubble.
+
+	   Anything the visitor does — grabbing him, asking for a trick,
+	   scrolling on to the next section — cancels the rest. He should never
+	   keep lecturing over an interruption. */
+	let beatTimer;
+	let beatRun = 0;
+
+	function stopSpeaking() {
+		beatRun++;
+		clearTimeout(beatTimer);
+	}
+
+	function speak(beats) {
+		stopSpeaking();
+		if (!beats.length) return;
+		const run = beatRun;
+
+		const next = (i) => {
+			if (run !== beatRun || hidden) return; // interrupted
+			const b = beats[i];
+			say(b.text, { face: b.face, pose: b.pose });
+			if (i + 1 < beats.length) {
+				// Hold each line a touch past its own reading time so there is
+				// a beat of silence rather than a stream.
+				beatTimer = setTimeout(() => next(i + 1), Math.max(2800, b.text.length * 52) + 550);
+			}
+		};
+		next(0);
 	}
 
 	/* ════════════════════════════════════════════════════════════════════
@@ -514,30 +559,9 @@
 			idleSince = now;
 		}
 
-		// The handover: once the hero has largely scrolled away he leaves
-		// centre stage and takes up the guide lane. Hysteresis on the two
-		// thresholds stops him flip-flopping when a scroll stalls mid-handover.
-		if (mode !== 'free') {
-			const slot = document.getElementById('character-stage');
-			if (slot) {
-				const r = slot.getBoundingClientRect();
-				const goneUp = r.bottom < window.innerHeight * 0.42;
-				const backDown = r.bottom > window.innerHeight * 0.62;
-
-				if (mode === 'hero' && goneUp) {
-					mode = 'guide';
-					restage();
-				} else if (mode === 'guide' && backDown) {
-					mode = 'hero';
-					restage();
-				} else if (mode === 'hero') {
-					// While he is still centre stage, track the slot as it
-					// scrolls so he travels with the hero rather than floating
-					// free of it.
-					restage();
-				}
-			}
-		}
+		// Follow the sticky slot. There is nothing to decide any more — the
+		// layout decides where he stands and this just keeps him there.
+		if (mode !== 'free') restage();
 
 		// Reached the end.
 		const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 120;
@@ -619,7 +643,7 @@
 		hidden = false;
 		persist();
 		await tick();
-		mode = window.scrollY < window.innerHeight * 0.5 ? 'hero' : 'guide';
+		mode = 'stage';
 		restage({ instant: true });
 		const r = pick('recalled', REACTIONS.recalled);
 		say(r.text, { face: r.face, pose: 'wave' });
@@ -660,7 +684,7 @@
 
 		// If the visitor loads part-way down the page he should already be in
 		// the guide lane rather than sliding in from the hero.
-		mode = window.scrollY < window.innerHeight * 0.5 ? 'hero' : 'guide';
+		mode = 'stage';
 		restage({ instant: true });
 
 		lastScrollY = window.scrollY;
@@ -717,6 +741,7 @@
 		<div
 			bind:this={el}
 			class="companion no-print ch-{pose} ch-{face}"
+			class:on-stage={mode === 'stage'}
 			class:invisible
 			class:held
 			style={`--sx:${squash.sx}; --sy:${squash.sy}; --rot:${rot}deg`}
@@ -862,6 +887,16 @@
 	   Sits above him and flips to whichever side has room. Deliberately
 	   capped in width: a speech bubble that spans the viewport stops reading
 	   as speech. */
+	/* On his own stage the bubble sits ABOVE him and stays inside his column.
+	   Anchored beside him it reached across into the copy and sat on top of
+	   the headline — the one thing a column layout is supposed to prevent. */
+	.on-stage .bubble {
+		left: 0;
+		right: auto;
+		bottom: calc(var(--scale, 1) * 400px);
+		max-width: min(21rem, calc(var(--stage-w) - 3rem));
+	}
+
 	.bubble {
 		pointer-events: auto;
 		position: absolute;

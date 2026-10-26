@@ -95,14 +95,13 @@
 
 	--gutter: clamp(1.25rem, 5vw, 3rem);
 
-	/* ─── The character's lane ───────────────────────────────────────────────
-	   He guides from the left margin, and he is opaque. Without real space
-	   reserved for him he simply covers the copy — which he was doing. This
-	   is that space: the content shell is inset by it, so the lane is part of
-	   the layout rather than somewhere he happens to float.
-	   Zero on narrow screens, where he shrinks and tucks into the corner
-	   instead. */
+	/* The character now has a column of his own (see .tour below) rather than
+	   a reserved margin, so this stays at zero. Kept because `.shell` still
+	   reads it and a future floating element may want it back. */
 	--lane: 0rem;
+
+	/* His column. Wide enough for the figure at stage size plus his speech. */
+	--stage-w: 27rem;
 	--shell: 82rem;
 	--shell-wide: 94rem;
 
@@ -399,11 +398,54 @@ video {
 	padding-left: calc(var(--gutter) + var(--lane));
 }
 
-/* Wide enough to give him a lane of his own. 9.5rem clears the guide-size
-   figure (120px) plus its margin with room to spare. */
+/* ══════════════════════════════════════════════════════════════════════════════
+   THE TOUR
+   The character is not a widget on this page — he is the page. He gets a
+   sticky column of his own that he never leaves, and the content scrolls past
+   him as a series of scenes he introduces.
+
+   Two columns rather than an overlay, because an overlay would mean he either
+   covers the copy or has to keep dodging it. A column cannot overlap by
+   construction.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.tour {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.tour-stage {
+	display: none; /* no room below the breakpoint; he docks to a corner there */
+}
+
+.tour-scenes {
+	min-width: 0;
+}
+
 @media (min-width: 64rem) {
-	:root {
-		--lane: 9.5rem;
+	.tour {
+		grid-template-columns: var(--stage-w) minmax(0, 1fr);
+		align-items: start;
+	}
+
+	.tour-stage {
+		display: block;
+		position: sticky;
+		top: 0;
+		/* Full height so he stands on the floor of the viewport whatever is
+		   scrolling past him. */
+		height: 100svh;
+		pointer-events: none;
+	}
+
+	/* Inside the tour the sections are already inset by the stage column, so
+	   their own shell only pads and never re-centres — otherwise the content
+	   would drift back toward the middle of the window and reopen the gap the
+	   column was meant to close. */
+	.tour-scenes .shell {
+		max-width: 60rem;
+		margin-inline: 0;
+		padding-left: var(--gutter);
 	}
 }
 .shell-wide {

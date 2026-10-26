@@ -47,53 +47,67 @@ export const GREETING = {
 export const SECTIONS = {
 	practice: {
 		label: 'Practice',
-		lines: [
-			{ text: "Four disciplines. AI, machine learning, iOS and full-stack — and the counts here come live from the database, not from me typing them in.", pose: 'point', face: 'neutral' },
-			{ text: "Most of my work sits where these overlap. A model is only useful once something ships around it.", pose: 'idle', face: 'neutral' },
-			{ text: "If you only read one section, this is the one that says what I actually do.", pose: 'point', face: 'happy' }
+		/**
+		 * Beats, delivered in sequence with a pause between them.
+		 *
+		 * One line per section made him a signpost. He is supposed to be the
+		 * one telling you about me, so each section gets a short monologue
+		 * instead: what it is, what is actually true about it, and the bit a
+		 * reader would otherwise have to infer for themselves.
+		 */
+		beats: [
+			{ text: "Right — the short version of me. Four disciplines: AI engineering, machine learning, native iOS, and full-stack.", pose: 'point', face: 'neutral' },
+			{ text: "People usually assume one of those is the real job and the rest are hobbies. They aren't. Most of what I ship lives where they overlap.", pose: 'idle', face: 'neutral' },
+			{ text: "These counts come live from my database, by the way. If I learn something next week, this number changes without me editing a line of code.", pose: 'point', face: 'grin' }
 		]
 	},
 	work: {
 		label: 'Work',
-		lines: [
-			{ text: "The projects. Every card opens a full write-up — the problem, the approach, and what it really took.", pose: 'point', face: 'happy' },
-			{ text: "Featured ones are up top. Use the filter if you only care about one kind.", pose: 'point', face: 'neutral' },
-			{ text: "Go on, open one. I'll wait here.", pose: 'idle', face: 'grin' }
+		beats: [
+			{ text: "The work. Learning platforms, a navigation system, a skills tracker, a chatbot, some F1 data analysis.", pose: 'point', face: 'happy' },
+			{ text: "Every card opens a full write-up — the problem, the approach, and honestly what it cost me. Not just a screenshot and a tech-stack list.", pose: 'idle', face: 'neutral' },
+			{ text: "Use the filter if you only care about one kind. I won't be offended.", pose: 'idle', face: 'grin' }
 		]
 	},
 	experience: {
 		label: 'Experience',
-		lines: [
-			{ text: "Roles and study on one timeline. I merged them deliberately — two separate lists make you do the reconciling.", pose: 'point', face: 'neutral' },
-			{ text: "The green dot is where I am now.", pose: 'point', face: 'happy' },
-			{ text: "Associate Software Engineer at Mythics. Application development and applied ML.", pose: 'idle', face: 'neutral' }
+		beats: [
+			{ text: "Where I've actually worked. I'm an Associate Software Engineer at Mythics — application development and applied machine learning.", pose: 'point', face: 'neutral' },
+			{ text: "Before that I was a Practice AI Engineer there, on intelligent systems and emerging tech. Same company, different seat.", pose: 'idle', face: 'neutral' },
+			{ text: "Roles and study sit on one timeline on purpose. Two separate lists make you do the reconciling, and that's my job, not yours.", pose: 'point', face: 'neutral' },
+			{ text: "The green dot is where I am right now.", pose: 'idle', face: 'happy' }
 		]
 	},
 	stack: {
 		label: 'Stack',
-		lines: [
-			{ text: "The tools, grouped by what they're for. The bars are relative depth — I'm not going to award myself a percentage.", pose: 'point', face: 'neutral' },
-			{ text: "Everything here is in active use. No padding.", pose: 'idle', face: 'happy' },
-			{ text: "Hover a group if you want the detail.", pose: 'point', face: 'neutral' }
+		beats: [
+			{ text: "The tools. Grouped by what they're for rather than by language, because nobody hires for an alphabet.", pose: 'point', face: 'neutral' },
+			{ text: "The bars are relative depth, not a score. I'm not going to award myself a percentage and ask you to believe it.", pose: 'idle', face: 'neutral' },
+			{ text: "Everything here is in active use. No padding, no 'familiar with'.", pose: 'idle', face: 'grin' }
 		]
 	},
 	credentials: {
 		label: 'Credentials',
-		lines: [
-			{ text: "Certificates and awards. Every one has a Verify link — don't take my word for any of it.", pose: 'point', face: 'happy' },
-			{ text: "Oracle, Google, Cisco, Anthropic. The credential IDs are real; go and check.", pose: 'idle', face: 'neutral' },
-			{ text: "Expired ones say so. I'd rather tell you than have you notice.", pose: 'idle', face: 'neutral' }
+		beats: [
+			{ text: "Certificates and awards. Oracle, Google, Cisco, Anthropic.", pose: 'point', face: 'happy' },
+			{ text: "Every one has a Verify link and a real credential ID. Please don't take my word for any of it — that's rather the point.", pose: 'idle', face: 'neutral' },
+			{ text: "If one has expired it says so. I'd rather tell you than have you find out.", pose: 'idle', face: 'neutral' }
 		]
 	},
 	contact: {
 		label: 'Contact',
-		lines: [
-			{ text: "This is the part where you email me. Click the address and it copies.", pose: 'point', face: 'grin' },
-			{ text: "The form composes a message in your own mail app — nothing is sent from this page. I'd rather say so than surprise you.", pose: 'idle', face: 'neutral' },
-			{ text: "Open to new roles, and I read everything.", pose: 'wave', face: 'happy' }
+		beats: [
+			{ text: "And that's the tour. I'm based in Bengaluru, and I'm open to new roles.", pose: 'wave', face: 'happy' },
+			{ text: "The form composes a message in your own mail app — nothing is sent from this page. I'd rather say that up front than surprise you.", pose: 'idle', face: 'neutral' },
+			{ text: "Or just click the address and it copies. I read everything.", pose: 'point', face: 'grin' }
 		]
 	}
 };
+
+/** Back-compat: the first beat doubles as the old single line. */
+for (const key of Object.keys(SECTIONS)) {
+	SECTIONS[key].lines = SECTIONS[key].beats;
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    REACTIONS
