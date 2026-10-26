@@ -92,30 +92,24 @@
 
 	onDestroy(() => raf && cancelAnimationFrame(raf));
 
-	// Measured from the skeleton: he stands on y = 0 about the pelvis, the
-	// hair reaches about −70 and the soles about +52.
-	const VB = { x: -58, y: -80, w: 116, h: 142 };
+	// Measured from the skeleton as it now stands: the hair tops out near −75
+	// and the hands swing down to about +30. Nothing below that is drawn, so
+	// the box stops there instead of reserving space for legs that no longer
+	// exist.
+	const VB = { x: -56, y: -80, w: 112, h: 116 };
 </script>
 
 <svg
 	class="soft"
 	viewBox={`${VB.x} ${VB.y} ${VB.w} ${VB.h}`}
-	preserveAspectRatio="xMidYMax meet"
+	preserveAspectRatio="xMidYMid meet"
 	role="img"
 	aria-label="An illustration of Venkataraman"
 	style={`--lean:${lean}deg; --lx:${lookX}; --ly:${lookY}`}
 >
-	<!-- A soft contact shadow, squashed as he leaves the ground so a jump
-	     reads as a jump rather than a float. -->
-	<ellipse
-		class="shadow"
-		cx="0"
-		cy="54"
-		rx={22 - Math.min(Math.abs(pose.y ?? 0) * 0.16, 9)}
-		ry={4 - Math.min(Math.abs(pose.y ?? 0) * 0.025, 1.8)}
-		opacity={0.14 - Math.min(Math.abs(pose.y ?? 0) / 700, 0.07)}
-	/>
-
+	<!-- No contact shadow: a shadow is cast by something standing on a floor,
+	     and he is a face and two hands. Keeping one would have him hovering
+	     over a stain. -->
 	<g transform={`scale(${facing} 1)`}>
 		<g transform={`translate(0 ${pose.y ?? 0}) rotate(${pose.rot ?? 0})`}>
 			<g class="rig">
@@ -134,10 +128,6 @@
 		transform: rotate(var(--lean));
 		transform-origin: 50% 100%;
 		transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
-	}
-
-	.shadow {
-		fill: #1f1d1b;
 	}
 
 	/* Pupils track the pointer. Done in CSS off two custom properties so it

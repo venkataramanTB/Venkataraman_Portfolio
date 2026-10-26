@@ -1,25 +1,31 @@
 /**
- * The character's geometry, in the Soft system.
+ * The character: a face and two hands.
  *
- * Only the SHAPES live here. Every pose and animation still comes from
- * rig.js, because the joint names are identical — so the whole library
- * written for the earlier versions drives this one unchanged.
+ * Nothing else is drawn. No torso, no arms, no legs.
  *
- * What changed is the drawing: thick rounded capsules instead of thin
- * rectangles, a large round head, and a palette that belongs to the page
- * rather than to a photograph. The voxel figure was a faithful copy of a
- * reference site's toy; this one is a mascot for THIS interface — same
- * person, drawn the way the rest of the system is drawn.
+ * The skeleton, however, is still the WHOLE skeleton — spine, arms,
+ * forearms, legs and all. Those bones simply carry no shapes. That is the
+ * trick that makes this cheap: the hands still hang off the end of real arm
+ * chains, so every pose in rig.js — point, wave, dance, punch, panic,
+ * think — moves them exactly where it always did, and the head still rides
+ * the spine so a lean or a nod still works. Deleting the bones would have
+ * meant rewriting thirty poses; emptying them cost nothing.
  *
- * Proportions are deliberately un-anatomical: a big head on a short body
- * reads as friendly, which a correctly proportioned figure does not.
+ * It also suits the job better. He is a narrator: the face carries the
+ * expression and the hands do the pointing, and a body between them was
+ * only ever furniture.
  */
 
 /** Taken from the portrait, warmed to sit on the paper. */
 export const SOFT_PALETTE = {
 	skin: '#c98d62',
 	skinDark: '#ad744c',
-	hair: '#17151a',
+	/* Lifted well off the field. At #17151a the hair was darker than the page
+	   and his head simply had no silhouette — on black, "black hair" has to be
+	   charcoal or there is nothing to see. */
+	hair: '#3b3238',
+	hairLift: '#4a4047',
+	eyeWhite: '#f3efe6',
 	shirt: '#d9b45e', // the system gold, so he belongs to the page
 	shirtDark: '#a8862f',
 	trouser: '#24232a',
@@ -30,56 +36,45 @@ export const SOFT_PALETTE = {
 
 const cap = (w, len, fill) => ({ type: 'capsule', w, len, fill });
 
-/** One arm. `far` shades the away side so the two never merge. */
+/**
+ * One arm — invisible, except for the hand on the end.
+ *
+ * The bones stay so the poses keep working; only their shapes are gone.
+ * The hand is drawn larger than it was on the full figure, because it is
+ * now one of only three things on screen and has to carry its share.
+ */
 function arm(side, x, far) {
 	return {
 		name: `arm${side}`,
-		offset: { x, y: -24 },
-		len: 20,
-		rest: side === 'L' ? 10 : -10,
-		shapes: [cap(11, 20, far ? 'shirtDark' : 'shirt')],
+		// Shorter than real arms. With nothing drawn between shoulder and
+		// hand, full-length bones flung the hands into the far corners of the
+		// frame and the three shapes stopped reading as one character.
+		offset: { x: x * 0.7, y: -22 },
+		len: 13,
+		rest: side === 'L' ? 16 : -16,
+		shapes: [],
 		children: [
 			{
 				name: `fore${side}`,
-				len: 17,
+				len: 11,
 				rest: 0,
-				shapes: [cap(9.5, 17, far ? 'skinDark' : 'skin')],
+				shapes: [],
 				children: [
 					{
 						name: `hand${side}`,
 						len: 6,
 						rest: 0,
-						shapes: [{ type: 'circle', cx: 0, cy: 3, r: 6, fill: far ? 'skinDark' : 'skin' }],
-						children: []
-					}
-				]
-			}
-		]
-	};
-}
-
-/** One leg. */
-function leg(side, x, far) {
-	return {
-		name: `leg${side}`,
-		offset: { x, y: 7 },
-		len: 22,
-		rest: 0,
-		shapes: [cap(13, 22, far ? 'trouserDark' : 'trouser')],
-		children: [
-			{
-				name: `shin${side}`,
-				len: 20,
-				rest: 0,
-				shapes: [cap(11.5, 20, far ? 'trouserDark' : 'trouser')],
-				children: [
-					{
-						name: `foot${side}`,
-						len: 7,
-						rest: 0,
 						shapes: [
-							// A rounded shoe, pointing forward.
-							{ type: 'rrect', x: -7, y: 0, w: 17, h: 9, rx: 4.5, fill: 'shoe' }
+							// A mitten: palm plus thumb. Two overlapping circles read
+							// as a hand at this size where one circle reads as a dot.
+							{ type: 'circle', cx: 0, cy: 3, r: 8, fill: far ? 'skinDark' : 'skin' },
+							{
+								type: 'circle',
+								cx: side === 'L' ? 6.5 : -6.5,
+								cy: -2.5,
+								r: 4.2,
+								fill: far ? 'skinDark' : 'skin'
+							}
 						],
 						children: []
 					}
@@ -89,34 +84,55 @@ function leg(side, x, far) {
 	};
 }
 
+/** One leg — bones only, nothing drawn. Kept so leg-driven poses (walk,
+    jump, kick) still resolve without special-casing. */
+function leg(side, x) {
+	return {
+		name: `leg${side}`,
+		offset: { x, y: 7 },
+		len: 22,
+		rest: 0,
+		shapes: [],
+		children: [
+			{
+				name: `shin${side}`,
+				len: 20,
+				rest: 0,
+				shapes: [],
+				children: [{ name: `foot${side}`, len: 7, rest: 0, shapes: [], children: [] }]
+			}
+		]
+	};
+}
+
 export const SOFT_SKELETON = {
 	name: 'pelvis',
 	len: 0,
 	rest: 0,
-	shapes: [{ type: 'rrect', x: -13, y: -5, w: 26, h: 13, rx: 6.5, fill: 'trouser' }],
+	shapes: [], // the body is not drawn; this bone only positions the rest
 	children: [
 		{
 			name: 'spine',
 			len: -26,
 			rest: 0,
-			shapes: [
-				// A soft, slightly tapered torso.
-				{ type: 'rrect', x: -15, y: -28, w: 30, h: 32, rx: 13, fill: 'shirt' }
-			],
+			shapes: [],
 			children: [
 				{
 					name: 'neck',
 					len: -5,
 					rest: 0,
-					shapes: [{ type: 'rrect', x: -5, y: -6, w: 10, h: 8, rx: 4, fill: 'skinDark' }],
+					shapes: [],
 					children: [
 						{
 							name: 'head',
 							len: -22,
 							rest: 0,
 							shapes: [
+								// A touch of lift behind the hair mass, so the silhouette
+								// separates from the field instead of merging with it.
+								{ type: 'circle', cx: 1, cy: -31, r: 21, fill: 'hairLift' },
 								// Big and round — this is most of the friendliness.
-								{ type: 'circle', cx: 0, cy: -18, r: 17, fill: 'skin' },
+								{ type: 'circle', cx: 0, cy: -18, r: 18, fill: 'skin' },
 
 								// Beard: a rounded mass across the JAW only. The first
 								// version sat at eye level and turned the whole head into a
@@ -136,9 +152,12 @@ export const SOFT_SKELETON = {
 								{ type: 'circle', cx: -16, cy: -22, r: 6.5, fill: 'hair' },
 								{ type: 'circle', cx: 16, cy: -21, r: 6, fill: 'hair' },
 
-								// Eyes, sitting in the clear band between hair and beard.
-								{ type: 'circle', cx: -6, cy: -19, r: 2.7, fill: 'hair', id: 'eyeL' },
-								{ type: 'circle', cx: 6, cy: -19, r: 2.7, fill: 'hair', id: 'eyeR' },
+								// Eyes get whites. Dark pupils alone were dark-on-dark against
+								// the hair and beard and disappeared at this size.
+								{ type: 'circle', cx: -6.5, cy: -19, r: 4.4, fill: 'eyeWhite' },
+								{ type: 'circle', cx: 6.5, cy: -19, r: 4.4, fill: 'eyeWhite' },
+								{ type: 'circle', cx: -6.5, cy: -19, r: 2.4, fill: 'hair', id: 'eyeL' },
+								{ type: 'circle', cx: 6.5, cy: -19, r: 2.4, fill: 'hair', id: 'eyeR' },
 								// Brows, which carry more expression than the eyes do.
 								{ type: 'rrect', x: -9, y: -25, w: 7, h: 2.2, rx: 1.1, fill: 'hair' },
 								{ type: 'rrect', x: 2, y: -25, w: 7, h: 2.2, rx: 1.1, fill: 'hair' }
@@ -151,7 +170,7 @@ export const SOFT_SKELETON = {
 				arm('L', -13, false)
 			]
 		},
-		leg('R', 7, true),
-		leg('L', -7, false)
+		leg('R', 7),
+		leg('L', -7)
 	]
 };
