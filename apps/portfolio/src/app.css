@@ -94,8 +94,20 @@
 	--font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Menlo', monospace;
 
 	--gutter: clamp(1.25rem, 5vw, 3rem);
+
+	/* ─── The character's lane ───────────────────────────────────────────────
+	   He guides from the left margin, and he is opaque. Without real space
+	   reserved for him he simply covers the copy — which he was doing. This
+	   is that space: the content shell is inset by it, so the lane is part of
+	   the layout rather than somewhere he happens to float.
+	   Zero on narrow screens, where he shrinks and tucks into the corner
+	   instead. */
+	--lane: 0rem;
 	--shell: 82rem;
 	--shell-wide: 94rem;
+
+	/* Below this there is no room for a lane, so he gets none. */
+	--lane-min: 64rem;
 
 	/* Columns the visible guides are drawn on, and the layout follows. */
 	--cols: 12;
@@ -382,6 +394,17 @@ video {
 	max-width: var(--shell);
 	margin-inline: auto;
 	padding-inline: var(--gutter);
+	/* The lane is added to the leading inset, never subtracted from the
+	   content width, so reserving it can't squeeze the measure. */
+	padding-left: calc(var(--gutter) + var(--lane));
+}
+
+/* Wide enough to give him a lane of his own. 9.5rem clears the guide-size
+   figure (120px) plus its margin with room to spare. */
+@media (min-width: 64rem) {
+	:root {
+		--lane: 9.5rem;
+	}
 }
 .shell-wide {
 	max-width: var(--shell-wide);

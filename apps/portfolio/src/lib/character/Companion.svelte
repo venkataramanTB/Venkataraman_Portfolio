@@ -192,6 +192,8 @@
 		y.setTarget(t.y);
 		sc.setTarget(t.scale);
 		drive([x, y, sc], render);
+		// His station changed, so the side with room may have changed too.
+		pickSide();
 	}
 
 	function moveTo(px, py, { velocityX = 0, velocityY = 0, bouncy = false } = {}) {
@@ -281,9 +283,18 @@
 		}, dwell);
 	}
 
-	/** Flip the bubble to whichever side has room. */
+	/**
+	 * Flip the bubble to whichever side actually has room.
+	 *
+	 * Measured from where he VISUALLY is, not from his box: at guide scale the
+	 * box extends well left of the figure, so using box coordinates chose
+	 * "left" while he stood at the left margin and the bubble ran off the
+	 * edge of the screen.
+	 */
 	function pickSide() {
-		bubbleSide = x.value < window.innerWidth / 2 ? 'right' : 'left';
+		const v = visual();
+		const centre = (v.left + v.right) / 2;
+		bubbleSide = centre < window.innerWidth / 2 ? 'right' : 'left';
 	}
 
 	/* ════════════════════════════════════════════════════════════════════
@@ -854,6 +865,10 @@
 	.bubble {
 		pointer-events: auto;
 		position: absolute;
+		/* A hard ceiling on width as well as a side choice: on a narrow screen
+		   there may be no side with enough room, and a clipped speech bubble
+		   is worse than a narrow one. */
+		max-width: min(17rem, calc(100vw - 7rem));
 		/* Anchored to his head, which rises and falls with the scale. */
 		bottom: calc(var(--scale, 1) * 360px);
 		left: calc(var(--scale, 1) * 150px);

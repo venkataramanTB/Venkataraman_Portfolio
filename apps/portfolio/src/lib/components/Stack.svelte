@@ -27,6 +27,15 @@
 
 	$: featured = skills.filter((s) => s.is_featured);
 
+	/**
+	 * The database carries a `color` per skill, left over from the previous
+	 * design system. It is deliberately not used: on a single-colour field a
+	 * row of arbitrary purples and greens reads as decoration, and the one
+	 * thing a meter has to communicate — relative depth — is carried by its
+	 * length. The column stays in the schema so the admin console and any
+	 * future theme can still use it.
+	 */
+
 	/* The meters fill once, when the section first arrives. Driven by a class
 	   rather than per-element JS: nothing can interrupt it, so CSS is right. */
 	let filled = false;
@@ -63,7 +72,7 @@
 						{#if s.icon_url}
 							<img src={s.icon_url} alt="" width="15" height="15" loading="lazy" />
 						{:else}
-							<span class="chip-dot" style={s.color ? `background:${s.color}` : ''} aria-hidden="true"></span>
+							<span class="chip-dot" aria-hidden="true"></span>
 						{/if}
 						{s.name}
 					</li>
@@ -112,7 +121,7 @@
 										<div
 											class="meter-fill"
 											class:filled
-											style={`--p:${Math.max(0, Math.min(100, s.proficiency ?? 0))}%; ${s.color ? `background:${s.color};` : ''}`}
+											style={`--p:${Math.max(0, Math.min(100, s.proficiency ?? 0))}%`}
 										></div>
 									</div>
 								</li>
