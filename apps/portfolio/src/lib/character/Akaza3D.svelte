@@ -45,7 +45,6 @@
 
 	/* Set by the loader, read by the frame loop. */
 	let bones = {};
-	let api = null;
 
 	/** Spring state per bone channel: {x,y,z} current + velocity. */
 	const springs = {};
@@ -348,7 +347,6 @@
 			raf = requestAnimationFrame(frame);
 		};
 
-		api = { apply };
 		startedAt = performance.now();
 
 		if (reduced) {
