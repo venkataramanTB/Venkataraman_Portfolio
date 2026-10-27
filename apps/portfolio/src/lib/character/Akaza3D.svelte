@@ -55,9 +55,11 @@
 	let startedAt = 0;
 	let doneFired = false;
 
-	$: if (api && animation !== current) {
+	// Track prop changes even while the GLB is loading. The frame loop reads
+	// `current` once the model is ready, so the latest requested pose is not lost.
+	$: if (animation !== current) {
 		current = animation;
-		startedAt = performance.now();
+		startedAt = typeof performance !== 'undefined' ? performance.now() : 0;
 		doneFired = false;
 	}
 

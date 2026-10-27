@@ -139,23 +139,9 @@ export const POSES = {
 	 * world space, where it is exact, and the bones are left to do the part
 	 * they are good at.
 	 */
-	idle: pose({
-		/* AKAZA'S COMBAT STANCE, from the reference still.
-		 *
-		 * Deep horse stance with the knees driven outward, right palm open and
-		 * raised, left fist chambered at the chest, torso square and upright.
-		 *
-		 * Solved against the live skeleton, limb by limb, parent before child:
-		 * each number is the local rotation that puts that bone's child in a
-		 * chosen direction expressed in HIS OWN axes, not the world's — so the
-		 * stance holds no matter which way `facing` has turned him.
-		 *
-		 * Why the numbers look wild (forearmR is 132/43/-160): a forearm going
-		 * from hanging to pointing straight up is close to a half turn, and
-		 * Euler angles describe half turns badly even when the rotation itself
-		 * is clean. They are applied as a quaternion, so the ugly triples are
-		 * only ugly on the page.
-		 */
+	fight: pose({
+		/* Reference combat stance: wide horse stance, open right palm extended
+		   toward the viewer, left fist chambered near the chest. */
 		thighL: [-4.3 * D, -28.9 * D, -16.6 * D],
 		calfL: [0.3 * D, 47.6 * D, -0.8 * D],
 		footL: [-29.8 * D, -40 * D, -72.4 * D],
@@ -179,6 +165,9 @@ export const POSES = {
 		drop: 0.28
 	}),
 
+	idle: pose({
+		/* Neutral idle: use the corrected rest pose, not the fight stance. */
+	}),
 	/* Right arm up and out, elbow nearly straight, torso turned into it and
 	   the head following the hand. The head turn is what sells it — an arm
 	   raised with the face still pointing at the reader looks like a stretch,
@@ -271,9 +260,12 @@ export const POSES = {
  * stops moving.
  */
 export const ALIASES = {
+	fight: 'fight',
+	combat: 'fight',
+	punch: 'fight',
+	kick: 'fight',
 	walk: 'idle',
 	jump: 'dance',
-	kick: 'punch',
 	happy: 'wave',
 	celebrate: 'dance',
 	sad: 'think',
@@ -298,5 +290,5 @@ export function resolvePose(name) {
  * contract expects a one-shot to report back so it can return to idle; a
  * stance that has no natural end never fires it.
  */
-export const ONE_SHOT = new Set(['point', 'wave', 'dance', 'panic', 'punch']);
+export const ONE_SHOT = new Set(['point', 'wave', 'dance', 'panic']);
 export const ONE_SHOT_MS = 2600;
