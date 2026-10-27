@@ -50,8 +50,11 @@
 
 	/** How large he is when guiding, relative to his hero size. */
 	/* Floating over the chapters rather than standing in a column, so he is
-	   smaller: at 0.44 he covered the hero's buttons. */
-	const GUIDE_SCALE = 0.34;
+	   smaller than hero size — but not by as much as he was. 0.34 was set
+	   while the `transform` bug below was still live and every figure drew at
+	   full size regardless, so the number was never actually seen on screen.
+	   With the scale working, 0.34 is a thumbnail. */
+	const GUIDE_SCALE = 0.56;
 
 	/**
 	 * Where he is:
@@ -804,6 +807,12 @@
 				{:else}
 					<SoftFigure animation={anim} {lean} {facing} {lookX} {lookY} />
 				{/if}
+
+				<!-- The actual grab target. See .hit in the stylesheet: a canvas
+				     takes pointer events across its whole rectangle, so without
+				     this he swallows clicks on whatever he is standing in front
+				     of. -->
+				<span class="hit" aria-hidden="true"></span>
 			</div>
 
 			<!-- Controls -->
@@ -869,7 +878,17 @@
 	}
 
 	.grab {
-		pointer-events: auto;
+		/* NONE, deliberately — the .hit child below is what takes the pointer.
+		   
+		   The figure used to be an SVG, and an SVG only receives pointer
+		   events where it has actually painted something, so the empty space
+		   around him was transparent to clicks for free. A <canvas> is not: it
+		   takes events across its entire rectangle. Swapping one for the other
+		   silently turned a figure-shaped hit area into a 272×420 block, and
+		   he started eating clicks on the hero's primary button from several
+		   inches away. */
+		pointer-events: none;
+		position: relative;
 		height: 420px;
 		/* Two scales multiplied: --scale is where he is in the story (hero vs
 		   guide), --sx/--sy is the impact squash when he lands. Keeping them
@@ -884,12 +903,26 @@
 		transform: scale(calc(var(--scale, 1) * var(--sx, 1)), calc(var(--scale, 1) * var(--sy, 1)))
 			rotate(var(--rot, 0deg));
 		transform-origin: center bottom;
+		transition: transform 110ms var(--ease-out);
+	}
+	/* Roughly his head and torso: the part of him a person would reach for,
+	   and narrow enough that an outstretched arm in the `point` pose no longer
+	   covers a button. Deliberately not the full silhouette — matching the
+	   pose exactly would mean the grab target moved while he gestured, which
+	   is a worse thing to hand someone than a slightly small one. */
+	.hit {
+		position: absolute;
+		left: 30%;
+		right: 30%;
+		top: 0;
+		bottom: 0;
+		pointer-events: auto;
 		cursor: grab;
 		touch-action: none;
 		-webkit-tap-highlight-color: transparent;
-		transition: transform 110ms var(--ease-out);
 	}
-	.held .grab {
+
+	.held .hit {
 		cursor: grabbing;
 	}
 
@@ -983,11 +1016,14 @@
 	   a toolbar. */
 	.controls {
 		pointer-events: auto;
-		/* Pulled up to meet his feet, which move as he scales. */
-		margin-top: calc((var(--scale, 1) - 1) * 420px + 0.25rem);
 		display: flex;
 		gap: 0.1875rem;
 		justify-content: center;
+		/* Sits just under the box, which is where his feet are: .grab scales
+		   from `center bottom`, so the figure's base stays on the box's base
+		   at every scale. (There was a second, dead margin-top above this one
+		   trying to do the same job with arithmetic; it was overridden and
+		   would have thrown the row 277px upward if it ever won.) */
 		margin-top: 0.125rem;
 		opacity: 0;
 		transform: translateY(-4px);
@@ -1024,9 +1060,13 @@
 	.tricks {
 		pointer-events: auto;
 		position: absolute;
-		bottom: 100%;
-		left: 0;
-		margin-bottom: 0.5rem;
+		/* Anchored to the top of the VISIBLE figure, the same way the speech
+		   bubble is. `bottom: 100%` put it at the top of the 420px box — but
+		   the box only ever contains the figure at full hero scale, so in the
+		   guide lane the menu floated roughly 200px above his head with
+		   nothing joining the two. */
+		bottom: calc(var(--scale, 1) * 420px + 0.5rem);
+		left: calc(var(--scale, 1) * 20px);
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.125rem;

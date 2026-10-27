@@ -178,24 +178,148 @@ export const REACTIONS = {
    ════════════════════════════════════════════════════════════════════════════ */
 
 export const TRICKS = [
-	{ id: 'dance', label: 'Dance', pose: 'dance', face: 'grin', ms: 3200, line: 'Watch this.' },
-	{ id: 'punch', label: 'Punching bag', pose: 'punch', face: 'panic', ms: 2600, line: 'Bring it on.' },
-	{ id: 'panic', label: 'Panic', pose: 'panic', face: 'panic', ms: 2200, line: 'Aaah! Who broke prod?' },
-	{ id: 'fly', label: 'Fly', pose: 'fly', face: 'surprised', ms: 2600, line: 'To infinity—' },
-	{ id: 'vanish', label: 'Vanish', pose: 'idle', face: 'wink', ms: 2000, line: 'Now you see me...' },
-	{ id: 'hiccup', label: 'Hiccup', pose: 'idle', face: 'surprised', ms: 2400, line: 'Hic! Excuse me.' },
-	{ id: 'peekaboo', label: 'Peekaboo', pose: 'idle', face: 'grin', ms: 2000, line: 'Boo!' },
-	{ id: 'selfie', label: 'Selfie', pose: 'selfie', face: 'grin', ms: 2400, line: 'Say cheese.' },
-	{ id: 'dizzy', label: 'Dizzy', pose: 'idle', face: 'dizzy', ms: 2800, line: 'Everything is spinning.' },
-	{ id: 'sneeze', label: 'Sneeze', pose: 'idle', face: 'surprised', ms: 2000, line: 'Achoo! Sorry.' },
-	{ id: 'sulk', label: 'Sulk', pose: 'sulk', face: 'sulk', ms: 3000, line: "Hmph. Not talking to you." },
-	{ id: 'sleep', label: 'Nap', pose: 'sleep', face: 'sleep', ms: 3400, line: 'Just five minutes.' },
-
-	// Everything below needs the hinge at his waist, so none of it was
-	// possible while he was a photograph.
-	{ id: 'walk', label: 'Walk', pose: 'walk', face: 'happy', ms: 3000, line: 'Stretching the legs.' },
-	{ id: 'run', label: 'Run', pose: 'run', face: 'surprised', ms: 2600, line: "Can't stop, won't stop." },
-	{ id: 'jump', label: 'Jump', pose: 'jump', face: 'grin', ms: 2800, line: 'Hup!' },
-	{ id: 'kick', label: 'High kick', pose: 'kick', face: 'grin', ms: 2400, line: 'Hiyah.' },
-	{ id: 'moonwalk', label: 'Moonwalk', pose: 'moonwalk', face: 'grin', ms: 3600, line: 'Watch the feet.' }
+	/* Written for the character that is actually on screen now.
+	 *
+	 * The old list was a generic mascot's: hiccup, sneeze, nap, moonwalk. On
+	 * a demon standing in the Infinity Castle those read as a costume over
+	 * something else entirely, so every entry is re-pitched to the thing he
+	 * is — a martial artist who fights with his bare hands and cannot stop
+	 * sizing people up.
+	 *
+	 * Two rules held the set together:
+	 *
+	 * 1. ONE JOKE, NOT TWO. The gag is a demon applying a combat philosophy
+	 *    to front-end work. Lines that are only anime reference, with no turn
+	 *    back toward the portfolio, are just cosplay — and this page exists to
+	 *    get its author hired, so every line has to survive being read by
+	 *    someone who has never seen the show.
+	 * 2. EVERY POSE MUST EXIST IN BOTH RIGS. The 3D model and the SVG
+	 *    fallback share this list, so a pose only one of them has would break
+	 *    the other. These are all in rig.js and all mapped in akazaPoses.js.
+	 *
+	 * The `id`s fly, vanish, peekaboo, walk, run and moonwalk carry special
+	 * handling in Companion.svelte — they move him, or hide him. Those ids are
+	 * kept exactly as they were and only the words changed; renaming one
+	 * silently drops the behaviour it is named for.
+	 */
+	{
+		id: 'punch',
+		label: 'Combat stance',
+		pose: 'punch',
+		face: 'panic',
+		ms: 2800,
+		line: 'Destructive Death. Or a code review — same posture.'
+	},
+	{
+		id: 'think',
+		label: 'Read my spirit',
+		pose: 'think',
+		face: 'neutral',
+		ms: 3000,
+		line: "I can read fighting spirit. Yours says you're still on the first section."
+	},
+	{
+		id: 'kick',
+		label: 'Break the form',
+		pose: 'kick',
+		face: 'grin',
+		ms: 2400,
+		line: 'The technique is only the start. After that you make it yours.'
+	},
+	{
+		id: 'dance',
+		label: 'Blood demon art',
+		pose: 'dance',
+		face: 'grin',
+		ms: 3200,
+		line: 'Terrifying in the right light. Mostly just CSS.'
+	},
+	{
+		id: 'fly',
+		label: 'Ascend',
+		pose: 'fly',
+		face: 'surprised',
+		ms: 2600,
+		line: 'Upper Rank Three. Of three people in this castle.'
+	},
+	{
+		id: 'vanish',
+		label: 'Step through',
+		pose: 'idle',
+		face: 'wink',
+		ms: 2000,
+		line: 'The castle rearranges itself. Watch.'
+	},
+	{
+		id: 'peekaboo',
+		label: 'Behind you',
+		pose: 'idle',
+		face: 'grin',
+		ms: 2000,
+		line: 'Too slow.'
+	},
+	{
+		id: 'panic',
+		label: 'Sense bloodlust',
+		pose: 'panic',
+		face: 'panic',
+		ms: 2200,
+		line: 'Something woke up. It was the API — it does that.'
+	},
+	{
+		id: 'dizzy',
+		label: 'Lose the thread',
+		pose: 'idle',
+		face: 'dizzy',
+		ms: 2800,
+		line: 'Three hundred years and I still cannot centre a div.'
+	},
+	{
+		id: 'sulk',
+		label: 'Refuse the offer',
+		pose: 'sulk',
+		face: 'sulk',
+		ms: 3000,
+		line: 'No. I am not becoming a demon AND learning another framework.'
+	},
+	{
+		id: 'selfie',
+		label: 'Hold still',
+		pose: 'selfie',
+		face: 'grin',
+		ms: 2400,
+		line: 'For the record. Demons photograph badly.'
+	},
+	{
+		id: 'walk',
+		label: 'Pace the hall',
+		pose: 'walk',
+		face: 'happy',
+		ms: 3000,
+		line: 'These corridors go on a while.'
+	},
+	{
+		id: 'run',
+		label: 'Close the distance',
+		pose: 'run',
+		face: 'surprised',
+		ms: 2600,
+		line: 'Never let an opponent set the pace.'
+	},
+	{
+		id: 'jump',
+		label: 'Leap the gap',
+		pose: 'jump',
+		face: 'grin',
+		ms: 2800,
+		line: 'The floor is a suggestion here.'
+	},
+	{
+		id: 'sleep',
+		label: 'Wait for nightfall',
+		pose: 'sleep',
+		face: 'sleep',
+		ms: 3400,
+		line: 'Sunlight and I have an arrangement. Five minutes.'
+	}
 ];
