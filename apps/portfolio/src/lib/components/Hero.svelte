@@ -168,6 +168,24 @@
 		width: 100%;
 	}
 
+	/* The character's lane.
+	   
+	   He stands bottom-left at full height, and at that size he is wide enough
+	   to occupy the same ground as the hero's buttons — which meant he was
+	   standing ON the primary call to action, visually and for the pointer.
+	   Nudging him around only moved which part of the button he covered.
+	   
+	   So the hero gives him a column instead of fighting him for one. The copy
+	   steps right by the lane's width on screens wide enough to spare it; on
+	   anything narrower he sits below the buttons anyway and the inset would
+	   just cramp the headline. This is what the old #character-stage slot was
+	   reaching for before it was dropped. */
+	@media (min-width: 64rem) {
+		.hero-copy {
+			padding-left: 15rem;
+		}
+	}
+
 	@media (max-width: 60rem) {
 		.hero-inner {
 			grid-template-columns: minmax(0, 1fr);

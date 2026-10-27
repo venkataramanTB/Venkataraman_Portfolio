@@ -47,14 +47,24 @@
 	const H = 420;
 	const W = 272;
 	const MARGIN = 20;
+	/**
+	 * The control row's height. It is a SIBLING of the figure's box, sitting
+	 * just below it, so it is not covered by H — and every bottom edge here
+	 * has to leave room for it or the buttons hang off the bottom of the
+	 * viewport. On a phone that put them under the browser's own chrome.
+	 */
+	const CONTROLS_H = 28;
 
 	/** How large he is when guiding, relative to his hero size. */
 	/* Floating over the chapters rather than standing in a column, so he is
 	   smaller than hero size — but not by as much as he was. 0.34 was set
 	   while the `transform` bug below was still live and every figure drew at
 	   full size regardless, so the number was never actually seen on screen.
-	   With the scale working, 0.34 is a thumbnail. */
-	const GUIDE_SCALE = 0.56;
+	   With the scale working, 0.34 is a thumbnail — and now that the figure is
+	   framed head to feet rather than cropped at the chest, the same box holds
+	   a whole body instead of a portrait, so it has to be larger again for the
+	   face to carry at all. */
+	const GUIDE_SCALE = 0.78;
 
 	/**
 	 * Where he is:
@@ -166,7 +176,7 @@
 			minX: MARGIN - W / 2 + (W * s) / 2,
 			maxX: window.innerWidth - MARGIN - W / 2 - (W * s) / 2,
 			minY: MARGIN - H + H * s,
-			maxY: window.innerHeight - MARGIN - H
+			maxY: window.innerHeight - MARGIN - CONTROLS_H - H
 		};
 	}
 
@@ -201,10 +211,13 @@
 
 	/** The side lane he occupies while guiding the rest of the page. */
 	function guideTarget() {
-		// A wider inset than MARGIN: his poses swing the hands well outside the
-		// figure's nominal width, and at the bare margin they were being
-		// clipped by the edge of the viewport.
-		const p = placeAt(MARGIN * 2.5, window.innerHeight - MARGIN, GUIDE_SCALE);
+		/* Hard against the left edge. The old inset of MARGIN * 2.5 dated from
+		   when the figure was a cropped portrait a third of this size; at full
+		   height he is wide enough that every pixel of inset is a pixel of
+		   overlap with the hero's buttons on the other side of him. The pose
+		   clipping that inset was guarding against is no longer a risk, because
+		   the model is fitted to 94% of its frame with air on all sides. */
+		const p = placeAt(MARGIN * 0.5, window.innerHeight - MARGIN - CONTROLS_H, GUIDE_SCALE);
 		return { scale: GUIDE_SCALE, x: p.x, y: p.y };
 	}
 

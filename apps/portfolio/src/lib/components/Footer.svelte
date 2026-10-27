@@ -201,6 +201,18 @@
 		font-size: 0.90625rem;
 	}
 
+	/* The colophon is the one block the character reliably stands on: he is
+	   fixed to the lower-left of the viewport, and this is the lower-left of
+	   the last thing on the page. Everywhere else he merely passes over
+	   content, but a CC BY credit has to stay legible to satisfy the licence,
+	   so the row steps clear of his lane. Below the lane width he is small
+	   enough and the layout narrow enough that the inset is not needed. */
+	@media (min-width: 60rem) {
+		.copy {
+			padding-left: 13rem;
+		}
+	}
+
 	.credit {
 		display: block;
 		margin-top: 0.4rem;

@@ -151,6 +151,11 @@ export function buildCastle({ quality = 1 } = {}) {
 		beamMesh.setColorAt(i, col);
 	});
 	beamMesh.instanceMatrix.needsUpdate = true;
+	/* setColorAt does NOT flag the attribute for upload — unlike almost every
+	   other setter in three. Without this line the per-instance tones are
+	   computed, written, and silently never reach the GPU, so every beam
+	   renders the same colour and the variation above is dead code. */
+	beamMesh.instanceColor.needsUpdate = true;
 	group.add(beamMesh);
 
 	/* ─── Shoji panels ───────────────────────────────────────────────────── */
@@ -194,19 +199,77 @@ export function buildCastle({ quality = 1 } = {}) {
 	const cordMesh = new THREE.InstancedMesh(cordGeo, cordMat, LANTERNS);
 
 	/* The glow. A sphere cannot look like a light source on its own, so each
-	   lantern gets a camera-facing sprite behind it with a radial gradient —
-	   the cheapest honest bloom there is, and it costs one shared texture. */
+	   lantern carries a camera-facing card with a radial gradient on it.
+	   
+	   These were sixty THREE.Sprites. A Sprite is its own Object3D and its own
+	   draw call, so the glows alone cost sixty of them — in a file whose whole
+	   argument is that the castle is a handful of draw calls. They are now one
+	   InstancedMesh with a billboarding vertex shader: one call for all of
+	   them, and the flicker moved onto the GPU, which also deletes the
+	   per-frame JavaScript loop that used to walk all sixty every frame.
+	   
+	   Billboarded in the shader rather than with Sprite's own maths: the card
+	   is offset in VIEW space, after the instance's position has been
+	   transformed, so it always faces the camera no matter how the instance
+	   is rotated. */
 	const glowTex = radialGlowTexture();
-	const glowMat = new THREE.SpriteMaterial({
-		map: glowTex,
-		color: GOLD,
+	const glowGeo = new THREE.InstancedBufferGeometry().copy(new THREE.PlaneGeometry(1, 1));
+	const aSize = new Float32Array(LANTERNS);
+	const aPhase = new Float32Array(LANTERNS);
+
+	const glowMat = new THREE.ShaderMaterial({
+		uniforms: {
+			uMap: { value: glowTex },
+			uColor: { value: new THREE.Color(GOLD) },
+			uOpacity: { value: 0.62 },
+			uTime: { value: 0 },
+			uFogDensity: { value: 0.0135 }
+		},
+		vertexShader: `
+			attribute float aSize;
+			attribute float aPhase;
+			uniform float uTime;
+			uniform float uFogDensity;
+			varying vec2 vUv;
+			varying float vFog;
+			void main() {
+				vUv = uv;
+				// The instance's centre, in view space.
+				vec4 centre = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+				// Breathing, per lantern, slightly out of step.
+				float k = 1.0 + sin(uTime * 0.0011 + aPhase) * 0.09;
+				// Offset in view space is what makes it face the camera.
+				vec4 mv = centre + vec4(position.xy * aSize * k, 0.0, 0.0);
+				// Matches the scene's FogExp2 by hand: a custom shader does not
+				// inherit it, and a lantern that stays bright at the far end of
+				// the castle destroys the depth every other object is selling.
+				float d = max(-mv.z, 0.0) * uFogDensity;
+				vFog = 1.0 - exp(-d * d);
+				gl_Position = projectionMatrix * mv;
+			}
+		`,
+		fragmentShader: `
+			uniform sampler2D uMap;
+			uniform vec3 uColor;
+			uniform float uOpacity;
+			varying vec2 vUv;
+			varying float vFog;
+			void main() {
+				vec4 t = texture2D(uMap, vUv);
+				gl_FragColor = vec4(uColor, 1.0) * t * uOpacity * (1.0 - vFog);
+			}
+		`,
 		transparent: true,
-		opacity: 0.62,
 		blending: THREE.AdditiveBlending,
 		depthWrite: false
 	});
 
-	const lanterns = [];
+	const glowMesh = new THREE.InstancedMesh(glowGeo, glowMat, LANTERNS);
+	// Instanced glows are billboarded in view space, so their world bounds are
+	// meaningless to the frustum culler and it will pop the whole batch out of
+	// existence at the wrong moment.
+	glowMesh.frustumCulled = false;
+
 	for (let i = 0; i < LANTERNS; i++) {
 		const host = rooms[Math.floor(rand() * rooms.length)];
 		const drop = 2 + rand() * 7;
@@ -230,19 +293,23 @@ export function buildCastle({ quality = 1 } = {}) {
 		m.compose(mid, q, new THREE.Vector3(1, drop, 1));
 		cordMesh.setMatrixAt(i, m);
 
-		const sprite = new THREE.Sprite(glowMat);
-		sprite.position.copy(pos);
+		// The glow sits exactly on the lantern. No rotation: the shader
+		// billboards it, so whatever is in the matrix here would be ignored.
+		m.compose(pos, new THREE.Quaternion(), new THREE.Vector3(1, 1, 1));
+		glowMesh.setMatrixAt(i, m);
 		// Smaller than the first pass. A wide soft glow reads as lens bokeh;
 		// a tight one reads as a paper lamp with a flame in it.
-		const s = 1.9 + rand() * 2.1;
-		sprite.scale.set(s, s, 1);
-		group.add(sprite);
-
-		lanterns.push({ pos, sprite, phase: rand() * Math.PI * 2, base: s });
+		aSize[i] = 1.9 + rand() * 2.1;
+		aPhase[i] = rand() * Math.PI * 2;
 	}
+
+	glowGeo.setAttribute('aSize', new THREE.InstancedBufferAttribute(aSize, 1));
+	glowGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
+
 	lanternMesh.instanceMatrix.needsUpdate = true;
 	cordMesh.instanceMatrix.needsUpdate = true;
-	group.add(lanternMesh, cordMesh);
+	glowMesh.instanceMatrix.needsUpdate = true;
+	group.add(lanternMesh, cordMesh, glowMesh);
 
 	/* ─── Light ──────────────────────────────────────────────────────────── */
 	/* Three lights total, none of them shadow-casting. Real point lights per
@@ -257,7 +324,15 @@ export function buildCastle({ quality = 1 } = {}) {
 	rim.position.set(-7, -4, -5);
 	group.add(hemi, key, rim);
 
-	return { group, lanterns, dispose: () => disposeTree(group) };
+	return {
+		group,
+		/* The frame loop sets this and nothing else — all sixty glows animate
+		   from one uniform. */
+		setTime: (t) => {
+			glowMat.uniforms.uTime.value = t;
+		},
+		dispose: () => disposeTree(group)
+	};
 }
 
 /** A soft radial falloff on a canvas — one texture, shared by every glow. */

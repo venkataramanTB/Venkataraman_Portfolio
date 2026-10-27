@@ -113,34 +113,42 @@
 		   than trusting a magic number that breaks the moment anyone
 		   re-exports the file.
 		   
-		   The figure is framed to head-and-chest, not full body. He sits in a
-		   box about 90px wide beside a speech bubble: framed head to toe the
-		   face is nine pixels tall and the whole point of having a character
-		   is gone. So he is scaled up until a head-and-shoulders crop fills
-		   the frame, and positioned by his TOP edge rather than his centre —
-		   what has to stay put as the camera crops is the top of his head. */
+		   THE WHOLE FIGURE FITS IN THE FRAME. An earlier pass cropped him to
+		   head-and-chest to buy a bigger face, and that was a mistake: a
+		   canvas is a hard rectangle, so cropping a figure against its edge
+		   draws a visible box around him — he stopped reading as a character
+		   standing on the page and started reading as a portrait in a frame.
+		   The fix for a small face is to make the whole figure bigger, which
+		   is what the guide scale now does, not to cut bits off him.
+		   
+		   Fitted by HEIGHT. He is far taller than he is wide, so height is
+		   always the binding constraint and fitting by width would leave him
+		   tiny in a tall box. */
 		const box = new THREE.Box3().setFromObject(model);
 		const size = box.getSize(new THREE.Vector3());
 		const centre = box.getCenter(new THREE.Vector3());
 
-		// Model height in world units. 5.4 against a frame that shows ~3.2
-		// means we see the top ~60% of him: head, shoulders, chest, hands.
-		const FIGURE_H = 5.4;
+		const CAM_Z = 5.2;
+		const FOV = 34;
+		// Half the frame height at the model's depth, from the camera's own
+		// numbers so this stays correct if the lens ever changes.
+		const halfH = CAM_Z * Math.tan((FOV / 2) * (Math.PI / 180));
+
+		/* 0.94 of the frame, so there is a little air above his hair and below
+		   his feet. Filling it exactly would put his silhouette hard against
+		   the canvas edge, which is the same framed look by another route —
+		   and poses that reach (point, dance) would clip. */
+		const FIGURE_H = halfH * 2 * 0.94;
 		const scale = FIGURE_H / Math.max(size.y, 0.0001);
 		model.scale.setScalar(scale);
 
-		// Half the frame height at the model's depth, from the camera's own
-		// numbers so this stays correct if the lens ever changes.
-		const CAM_Z = 5.2;
-		const FOV = 34;
-		const halfH = CAM_Z * Math.tan((FOV / 2) * (Math.PI / 180));
-		// Leave a little headroom above the hair so he isn't scalped by the
-		// top edge of the canvas.
-		const topY = halfH - 0.16;
-
+		/* Centred horizontally, and stood on the bottom of the frame rather
+		   than centred vertically: .grab scales from `center bottom`, so the
+		   bottom of this canvas is the line he appears to stand on at every
+		   guide scale. Centring him would have him float above it. */
 		model.position.set(
 			-centre.x * scale,
-			topY - (box.max.y * scale),
+			-halfH + 0.03 - box.min.y * scale,
 			-centre.z * scale
 		);
 
@@ -202,6 +210,10 @@
 		teardown.push(() => io.disconnect());
 
 		const tmp = new THREE.Euler();
+		/* How far he turns toward the way he is facing. Shallow on purpose —
+		   see the note where it is applied. */
+		const YAW = 0.38;
+		let yaw = facing >= 0 ? -YAW : YAW;
 
 		const apply = (dt, now) => {
 			const target = resolvePose(current);
@@ -246,8 +258,23 @@
 				bones.neck.rotation.x += lookY * 0.1;
 			}
 
-			// `facing` mirrors the whole figure, matching the SVG's scale(±1).
-			root.scale.x = facing >= 0 ? 1 : -1;
+			/* `facing` TURNS him; it does not mirror him.
+			   
+			   The SVG did this with scale(±1), which is the right answer in 2D
+			   and the wrong one here: a negative scale gives the world matrix a
+			   determinant of −1, which inverts winding order and flips every
+			   normal, so his shading breaks the moment he faces left — lit from
+			   the wrong side, with the toon shading inside out.
+			   
+			   A yaw also reads better. He is a figure in a space, so turning
+			   toward where he is going is what a body actually does; mirroring
+			   would swap which hand he gestures with, which on a model with an
+			   asymmetric costume is immediately obvious. Kept to a shallow
+			   angle so he stays mostly front-on to the reader rather than
+			   presenting a shoulder. */
+			const yawTarget = facing >= 0 ? -YAW : YAW;
+			yaw += (yawTarget - yaw) * Math.min(1, dt * 7);
+			root.rotation.y = yaw;
 			root.rotation.z = (-lean * Math.PI) / 180;
 
 			renderer.render(scene, camera);

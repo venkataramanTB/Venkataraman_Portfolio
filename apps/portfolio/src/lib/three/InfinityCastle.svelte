@@ -24,12 +24,13 @@
 	import { prefersReducedMotion } from '$lib/motion/spring.js';
 
 	let canvas;
-	let wrap;
 	let raf = 0;
 	let teardown = [];
 	/** Only fades in once there is something to look at, so the page never
 	    flashes a half-built scene. */
 	let ready = false;
+	/* Set when WebGL or the module import is unavailable. Nothing renders in
+	   that case and the painted gradient under the canvas carries the page. */
 	let failed = false;
 
 	onMount(async () => {
@@ -43,10 +44,10 @@
 
 		let THREE, buildCastle, FIELD;
 		try {
-			[{ ...THREE }, { buildCastle, FIELD }] = await Promise.all([
-				import('three'),
-				import('./castle.js')
-			]);
+			const [three, castleMod] = await Promise.all([import('three'), import('./castle.js')]);
+			THREE = three;
+			buildCastle = castleMod.buildCastle;
+			FIELD = castleMod.FIELD;
 		} catch {
 			failed = true;
 			return;
@@ -58,7 +59,11 @@
 		   mid-session: a scene that quietly drops detail while you scroll is
 		   more distracting than one that is simply lighter throughout. */
 		const small = window.matchMedia('(max-width: 60rem)').matches;
-		const quality = small ? 0.5 : 1;
+		/* 0.5 was set before the glows stopped costing sixty draw calls. With
+		   that fixed there is room for more of the castle on a small screen,
+		   and a sparse castle on a phone reads as an empty page rather than as
+		   a lighter version of the same place. */
+		const quality = small ? 0.7 : 1;
 
 		const renderer = new THREE.WebGLRenderer({
 			canvas,
@@ -138,6 +143,15 @@
 		   structure overhead and more of it below. */
 		const TRAVEL = 92;
 
+		/** How far down the page we are, 0…1. */
+		const scrollPos = () => {
+			const maxScroll = Math.max(
+				1,
+				document.documentElement.scrollHeight - window.innerHeight
+			);
+			return Math.min(Math.max(scrollY / maxScroll, 0), 1);
+		};
+
 		let camY = TRAVEL / 2;
 		let camYTarget = TRAVEL / 2;
 		let cx = 0;
@@ -154,12 +168,7 @@
 			   it, whatever the page's length — and when the API fills the
 			   page with real projects and it gets longer, the descent simply
 			   spreads out instead of overshooting. */
-			const maxScroll = Math.max(
-				1,
-				document.documentElement.scrollHeight - window.innerHeight
-			);
-			const p = Math.min(Math.max(scrollY / maxScroll, 0), 1);
-			camYTarget = TRAVEL / 2 - p * TRAVEL;
+			camYTarget = TRAVEL / 2 - scrollPos() * TRAVEL;
 			// Chase rather than snap, so a jumped scroll (a nav link, a
 			// keyboard End) glides instead of teleporting.
 			camY += (camYTarget - camY) * 0.075;
@@ -174,11 +183,8 @@
 			camera.rotation.z = camY * 0.0065;
 			camera.lookAt(cx * 0.5, camY + cy * 0.5, -10);
 
-			// Lanterns breathe, very slightly out of step with each other.
-			for (const l of castle.lanterns) {
-				const k = 1 + Math.sin(t * 0.0011 + l.phase) * 0.09;
-				l.sprite.scale.set(l.base * k, l.base * k, 1);
-			}
+			// One uniform drives every lantern's flicker on the GPU.
+			castle.setTime(t);
 
 			renderer.render(scene, camera);
 		};
@@ -193,8 +199,25 @@
 		};
 
 		if (reduced) {
-			// One frame, then stop. Still a castle, just not a moving one.
+			/* One frame, then stop — a still castle rather than a moving one.
+			   
+			   camY has to be SNAPPED to its target first. draw() normally eases
+			   toward the target a fraction per frame, which is right at 60fps
+			   and useless when exactly one frame will ever run: the single
+			   frame would render 7% of the way into the castle. That is
+			   invisible on a cold load at scroll 0 and very visible on a
+			   deep link to #contact, which would paint the top of the castle
+			   while the reader is at the bottom of the page. */
+			camY = camYTarget = TRAVEL / 2 - scrollPos() * TRAVEL;
 			draw(0);
+			// A still frame does not survive a window resize on its own.
+			const redraw = () => {
+				resize();
+				camY = camYTarget = TRAVEL / 2 - scrollPos() * TRAVEL;
+				draw(0);
+			};
+			window.addEventListener('resize', redraw, { passive: true });
+			teardown.push(() => window.removeEventListener('resize', redraw));
 		} else {
 			raf = requestAnimationFrame(frame);
 		}
@@ -222,15 +245,9 @@
 	}
 </script>
 
-<div class="castle" class:ready bind:this={wrap} aria-hidden="true">
+<div class="castle" class:ready aria-hidden="true">
 	<canvas bind:this={canvas}></canvas>
 </div>
-
-{#if failed}
-	<!-- No WebGL. The painted gradient below is always there underneath, so
-	     there is nothing to swap in — this branch exists only to make the
-	     failure explicit rather than silent. -->
-{/if}
 
 <style>
 	.castle {
