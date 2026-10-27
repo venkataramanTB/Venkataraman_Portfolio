@@ -223,7 +223,10 @@
 		const tmpQ = new THREE.Quaternion();
 		/* How far he turns toward the way he is facing. Shallow on purpose —
 		   see the note where it is applied. */
-		const YAW = 0.38;
+		/* Carries the body's turn as well as which way he faces, because the
+		   spine cannot: see the note on POSES.idle. Opened up from 0.38 so he
+		   stands at an angle to the reader rather than square to them. */
+		const YAW = 0.52;
 		let yaw = facing >= 0 ? -YAW : YAW;
 
 		const apply = (dt, now) => {

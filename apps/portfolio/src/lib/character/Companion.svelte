@@ -997,9 +997,19 @@
 		   there may be no side with enough room, and a clipped speech bubble
 		   is worse than a narrow one. */
 		max-width: min(17rem, calc(100vw - 7rem));
-		/* Anchored to his head, which rises and falls with the scale. */
-		bottom: calc(var(--scale, 1) * 360px);
-		left: calc(var(--scale, 1) * 150px);
+		/* ABOVE HIM, not across him.
+		   
+		   360px was an anchor for a figure cropped at the chest: it put the
+		   bubble level with his shoulders, so once he was framed head to feet
+		   it sat on his chest and face. The box is 420px tall and he now fills
+		   it, so clearing the full 420 — scaled, like everything else here —
+		   is what puts the bubble over his head.
+		   
+		   Centred on him rather than offset to one side, for the same reason:
+		   at full height there is no longer a shoulder to tuck it beside. */
+		bottom: calc(var(--scale, 1) * 420px + 0.6rem);
+		left: 50%;
+		transform: translateX(-50%);
 		width: max-content;
 		max-width: min(17rem, 46vw);
 		padding: 0.625rem 0.8125rem;
@@ -1007,16 +1017,21 @@
 		border-bottom-left-radius: var(--r-xs);
 		animation: pop 280ms var(--ease-out);
 	}
+	/* The side choice now only changes which bottom corner is notched, so the
+	   tail still points back toward him from whichever side he is speaking. */
 	.bubble.left {
-		left: auto;
-		right: calc(var(--scale, 1) * 150px);
 		border-bottom-left-radius: var(--r-lg);
 		border-bottom-right-radius: var(--r-xs);
 	}
+	/* Has to carry the centring translate too, or the bubble jumps sideways
+	   for the length of the animation and settles back. */
 	@keyframes pop {
 		from {
 			opacity: 0;
-			transform: translateY(6px) scale(0.94);
+			transform: translateX(-50%) translateY(6px) scale(0.94);
+		}
+		to {
+			transform: translateX(-50%);
 		}
 	}
 
@@ -1144,21 +1159,12 @@
 	   He shrinks rather than disappearing — the user asked for him to be
 	   present, and hiding him on phones would quietly undo that. */
 	@media (max-width: 40rem) {
-		.bubble {
-			left: calc(var(--scale, 1) * 110px);
-		}
-		.bubble.left {
-			right: calc(var(--scale, 1) * 110px);
-			left: auto;
-		}
+		/* Still centred over him; only the size changes. The old overrides
+		   pinned it to a fixed left/right offset, which fought the centring
+		   and pushed it off his head again. */
 		.bubble {
 			max-width: 56vw;
 			font-size: 0.78125rem;
-			left: 42px;
-		}
-		.bubble.left {
-			right: 42px;
-			left: auto;
 		}
 		.controls {
 			opacity: 1;

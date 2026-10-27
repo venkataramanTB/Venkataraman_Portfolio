@@ -108,7 +108,26 @@ const pose = (over) => ({ ...REST3D, ...over });
  * a bug; the same figure leaning in reads as deliberate.
  */
 export const POSES = {
-	idle: REST3D,
+	/**
+	 * Standing at ease, modelled on the reference still: weight settled, arms
+	 * hanging, torso turned a little off-camera, chin dropped so he is looking
+	 * slightly down at the reader.
+	 *
+	 * The chin is the part that carries it, and it is the part this rig does
+	 * well: the head's local Z is a clean pitch axis — measured, −15° of Z
+	 * gives about −6° of real pitch. Yaw is the part it does badly. Sweeping
+	 * every axis of both the spine and the head, the best torso twist
+	 * available is roughly 10° of turn for 45° of input; these are bend
+	 * joints, not twist joints. So the body's turn comes from the root yaw in
+	 * world space, where it is exact, and the bones are left to do the part
+	 * they are good at.
+	 */
+	idle: pose({
+		spine2: [10 * D, 0, 0],
+		spine3: [6 * D, 0, 0],
+		neck: [-6 * D, 0, -6 * D],
+		head: [-8 * D, 0, -12 * D]
+	}),
 
 	/* Right arm up and out, elbow nearly straight, torso turned into it and
 	   the head following the hand. The head turn is what sells it — an arm
