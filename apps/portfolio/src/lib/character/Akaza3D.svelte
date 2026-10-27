@@ -219,6 +219,18 @@
 		io.observe(canvas);
 		teardown.push(() => io.disconnect());
 
+		/* HOW FAR THE BODY SINKS, in model units.
+		   
+		   Forward kinematics has no idea there is a floor. Bending the knees
+		   rotates the shins around the knees, which lifts the FEET; it does
+		   not lower the hips. Left alone, a deep stance makes him hover with
+		   his legs tucked under him. So a pose that bends the knees also says
+		   how far the whole figure drops, and the root carries it. Sprung, so
+		   he settles into the stance rather than snapping down into it. */
+		let dropCur = 0;
+		let dropVel = 0;
+		const baseY = root.position.y;
+
 		const tmp = new THREE.Euler();
 		const tmpQ = new THREE.Quaternion();
 		/* How far he turns toward the way he is facing. Shallow on purpose —
@@ -303,6 +315,14 @@
 			const yawTarget = facing >= 0 ? -YAW : YAW;
 			yaw += (yawTarget - yaw) * Math.min(1, dt * 7);
 			root.rotation.y = yaw;
+
+			// Same spring shape as the joints, so the sink is in step with the
+			// bend that causes it.
+			const dropWant = target.drop ?? 0;
+			const da = (dropWant - dropCur) * SPRING.stiffness - dropVel * SPRING.damping;
+			dropVel += da * dt;
+			dropCur += dropVel * dt;
+			root.position.y = baseY - dropCur;
 			root.rotation.z = (-lean * Math.PI) / 180;
 
 			renderer.render(scene, camera);

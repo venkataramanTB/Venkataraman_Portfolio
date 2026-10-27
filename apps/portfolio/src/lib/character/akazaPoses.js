@@ -34,7 +34,18 @@ export const BONES = {
 	shoulderR: 'R_Shoulder_1_',
 	upperArmR: 'R_UpperArm_1_',
 	forearmR: 'R_Forearm_1_',
-	handR: 'R_Hand_1_'
+	handR: 'R_Hand_1_',
+	/* The legs were never wired up, so until now every pose from the knees
+	   down was whatever the bind pose happened to be. A fighting stance is
+	   mostly legs, so they are driven now. Same convention as the arms: the
+	   bone's local +X runs along its length (Calf sits at +38.99 on X from
+	   Thigh, Foot at +40.29 from Calf). */
+	thighL: 'L_Thigh_1_',
+	calfL: 'L_Calf_1_',
+	footL: 'L_Foot_1_',
+	thighR: 'R_Thigh_1_',
+	calfR: 'R_Calf_1_',
+	footR: 'R_Foot_1_'
 };
 
 const D = Math.PI / 180;
@@ -95,7 +106,13 @@ export const REST3D = {
 	handL: [0, 0, 0],
 	upperArmR: [0, 0, 0],
 	forearmR: [0, 0, 0],
-	handR: [0, 0, 0]
+	handR: [0, 0, 0],
+	thighL: [0, 0, 0],
+	calfL: [0, 0, 0],
+	footL: [0, 0, 0],
+	thighR: [0, 0, 0],
+	calfR: [0, 0, 0],
+	footR: [0, 0, 0]
 };
 
 const pose = (over) => ({ ...REST3D, ...over });
@@ -123,10 +140,43 @@ export const POSES = {
 	 * they are good at.
 	 */
 	idle: pose({
-		spine2: [10 * D, 0, 0],
-		spine3: [6 * D, 0, 0],
-		neck: [-6 * D, 0, -6 * D],
-		head: [-8 * D, 0, -12 * D]
+		/* AKAZA'S COMBAT STANCE, from the reference still.
+		 *
+		 * Deep horse stance with the knees driven outward, right palm open and
+		 * raised, left fist chambered at the chest, torso square and upright.
+		 *
+		 * Solved against the live skeleton, limb by limb, parent before child:
+		 * each number is the local rotation that puts that bone's child in a
+		 * chosen direction expressed in HIS OWN axes, not the world's — so the
+		 * stance holds no matter which way `facing` has turned him.
+		 *
+		 * Why the numbers look wild (forearmR is 132/43/-160): a forearm going
+		 * from hanging to pointing straight up is close to a half turn, and
+		 * Euler angles describe half turns badly even when the rotation itself
+		 * is clean. They are applied as a quaternion, so the ugly triples are
+		 * only ugly on the page.
+		 */
+		thighL: [-4.3 * D, -28.9 * D, -16.6 * D],
+		calfL: [0.3 * D, 47.6 * D, -0.8 * D],
+		footL: [-29.8 * D, -40 * D, -72.4 * D],
+		thighR: [4.3 * D, 28.9 * D, -16.6 * D],
+		calfR: [-0.3 * D, -47.6 * D, -0.8 * D],
+		footR: [29.8 * D, 40 * D, -72.4 * D],
+
+		// His right: elbow out, forearm up, palm open toward the reader.
+		upperArmR: [0, 9.7 * D, 0.1 * D],
+		forearmR: [132.8 * D, 43.1 * D, -160.4 * D],
+		// His left: chambered at chest height. The first solve left this hand
+		// up by his chin, which read as a flinch rather than a guard.
+		upperArmL: [0.7 * D, -9.6 * D, -1.3 * D],
+		forearmL: [-65.1 * D, -9.3 * D, -140.5 * D],
+
+		/* The stance costs height, and FK does not know it. Bending the knees
+		   rotates the shins about the knees, which lifts the feet — it never
+		   lowers the hips. Without this he holds the stance in mid-air with
+		   his legs tucked under him. Measured, not guessed: the distance his
+		   lowest foot rises between standing and this stance. */
+		drop: 0.28
 	}),
 
 	/* Right arm up and out, elbow nearly straight, torso turned into it and
