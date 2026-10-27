@@ -40,9 +40,49 @@ export const BONES = {
 const D = Math.PI / 180;
 
 /**
- * Rest. Not a T-pose and not the bind pose — arms dropped and slightly
- * forward, weight settled. Everything else is measured as a departure from
- * this, so it is the one pose worth getting exactly right.
+ * THE BIND POSE IS A T-POSE.
+ *
+ * Measured off the model, not assumed: the upper arm, forearm and hand all
+ * sit at y = 1.374 with the arm running flat along ±X. Zero drop. Every pose
+ * in this file was authored as if zero meant "arms hanging", which is the
+ * natural way to think about a character and completely wrong for this rig —
+ * so at rest he stood with both arms stretched out sideways.
+ *
+ * Rather than re-author every pose against a T-pose, which would make them
+ * unreadable, the correction below is folded into each bone's BASE rotation
+ * once at load. After that, zero really does mean "arms hanging", every pose
+ * in this file means what it says, and the rig matches the mental model.
+ *
+ * These numbers are SOLVED, not eyeballed, and solved against the RUNNING
+ * scene rather than against the file. Deriving them from the glTF hierarchy
+ * offline gave a confidently wrong answer: the export carries a Z-up to Y-up
+ * conversion partway up the chain, so a rotation that sent the arm downward
+ * in the bone's own space sent it straight forward once the scene graph had
+ * finished with it. Both arms ended up horizontal while the arithmetic said
+ * they were hanging. The reliable method is to ask the live skeleton where
+ * the arm actually points and solve for the local rotation that puts it
+ * where it belongs.
+ *
+ * They are mildly asymmetric because the rig is. Forcing them into mirror
+ * images would look tidier here and worse on screen.
+ *
+ * Arms land at his sides, clear of the torso, with a slight elbow bend; the
+ * forearms are solved AFTER the upper-arm correction, since they inherit it.
+ */
+export const REST_FIX = {
+	upperArmL: [71.8 * D, 32.1 * D, -64.9 * D],
+	upperArmR: [-71.4 * D, -31.6 * D, -65.3 * D],
+	/* Barely anything, and that is the check that the arm correction is
+	   right: the forearm is a child of the upper arm, so once the arm hangs
+	   properly the forearm already points most of the way down and needs only
+	   a few degrees of elbow. */
+	forearmL: [0.3 * D, 1.1 * D, -5.0 * D],
+	forearmR: [-0.3 * D, -1.3 * D, -5.0 * D]
+};
+
+/**
+ * Rest, as a departure from the corrected base above — so this is now only
+ * the small stuff: how he carries himself, not where his arms are.
  */
 export const REST3D = {
 	spine1: [0, 0, 0],
@@ -50,11 +90,11 @@ export const REST3D = {
 	spine3: [0, 0, 0],
 	neck: [0, 0, 0],
 	head: [0, 0, 0],
-	upperArmL: [8 * D, 0, 6 * D],
-	forearmL: [10 * D, 0, 0],
+	upperArmL: [0, 0, 0],
+	forearmL: [0, 0, 0],
 	handL: [0, 0, 0],
-	upperArmR: [8 * D, 0, -6 * D],
-	forearmR: [10 * D, 0, 0],
+	upperArmR: [0, 0, 0],
+	forearmR: [0, 0, 0],
 	handR: [0, 0, 0]
 };
 

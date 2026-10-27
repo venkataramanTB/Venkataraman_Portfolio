@@ -22,7 +22,7 @@
 	 */
 	import { onMount, onDestroy } from 'svelte';
 	import { prefersReducedMotion } from '$lib/motion/spring.js';
-	import { BONES, REST3D, resolvePose, ONE_SHOT, ONE_SHOT_MS } from './akazaPoses.js';
+	import { BONES, REST3D, REST_FIX, resolvePose, ONE_SHOT, ONE_SHOT_MS } from './akazaPoses.js';
 
 	export let animation = 'idle';
 	/** Whole-figure lean, degrees. */
@@ -172,11 +172,21 @@
 		// the worst outcome. Fall back instead.
 		if (!bones.head || !bones.upperArmR) return fail();
 
-		// Everything is measured from the bind pose, so each driven bone
-		// remembers where it started.
+		/* Each driven bone remembers where it started — as a QUATERNION, with
+		   the T-pose correction from akazaPoses.js already folded in. From
+		   here on a pose value of zero means "resting", which is what every
+		   pose in that file was written to assume. Composed once, here, so the
+		   correction costs nothing per frame. */
+		const fixE = new THREE.Euler();
 		for (const [key, bone] of Object.entries(bones)) {
+			const base = bone.quaternion.clone();
+			const fix = REST_FIX[key];
+			if (fix) {
+				fixE.set(fix[0], fix[1], fix[2], 'XYZ');
+				base.multiply(new THREE.Quaternion().setFromEuler(fixE));
+			}
 			springs[key] = {
-				base: bone.rotation.clone(),
+				base,
 				cur: { x: 0, y: 0, z: 0 },
 				vel: { x: 0, y: 0, z: 0 }
 			};
@@ -210,6 +220,7 @@
 		teardown.push(() => io.disconnect());
 
 		const tmp = new THREE.Euler();
+		const tmpQ = new THREE.Quaternion();
 		/* How far he turns toward the way he is facing. Shallow on purpose —
 		   see the note where it is applied. */
 		const YAW = 0.38;
@@ -237,25 +248,39 @@
 			const breath = Math.sin(now * 0.0016) * 0.022;
 			const sway = Math.sin(now * 0.0009) * 0.02;
 
-			for (const [key, bone] of Object.entries(bones)) {
-				const s = springs[key];
-				tmp.set(s.base.x + s.cur.x, s.base.y + s.cur.y, s.base.z + s.cur.z);
-				if (key === 'spine1') tmp.x += breath;
-				if (key === 'spine3') tmp.z += sway * 0.5;
-				bone.rotation.copy(tmp);
-			}
-
-			/* The head tracks the pointer ON TOP of whatever the pose set,
-			   which is why it is added here rather than folded into the pose
-			   data. Clamped hard: a head that can turn to look behind itself
+			/* Compose, do not add.
+			   
+			   This used to set bone.rotation to base + cur, component by
+			   component. Adding Euler angles only equals composing rotations
+			   when they share an axis — roughly true for the few degrees a
+			   pose asked for, and badly false now the rest correction asks for
+			   77. Building a quaternion from the pose and multiplying it onto
+			   the base is correct at any angle and costs the same.
+			   
+			   Breathing and pointer tracking fold in here, on top of whatever
+			   the pose set, which is why they are not in the pose data. The
+			   look is clamped hard: a head that can turn to look behind itself
 			   is horror, not charm. */
-			if (bones.head) {
-				bones.head.rotation.y += lookX * 0.34 * facing;
-				bones.head.rotation.x += lookY * 0.2;
-			}
-			if (bones.neck) {
-				bones.neck.rotation.y += lookX * 0.18 * facing;
-				bones.neck.rotation.x += lookY * 0.1;
+			for (const [key, bone] of Object.entries(bones)) {
+				const sp = springs[key];
+				let ex = sp.cur.x;
+				let ey = sp.cur.y;
+				let ez = sp.cur.z;
+
+				if (key === 'spine1') ex += breath;
+				if (key === 'spine3') ez += sway * 0.5;
+				if (key === 'head') {
+					ey += lookX * 0.34 * facing;
+					ex += lookY * 0.2;
+				}
+				if (key === 'neck') {
+					ey += lookX * 0.18 * facing;
+					ex += lookY * 0.1;
+				}
+
+				tmp.set(ex, ey, ez, 'XYZ');
+				tmpQ.setFromEuler(tmp);
+				bone.quaternion.copy(sp.base).multiply(tmpQ);
 			}
 
 			/* `facing` TURNS him; it does not mirror him.

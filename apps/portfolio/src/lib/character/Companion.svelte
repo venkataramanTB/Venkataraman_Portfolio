@@ -115,7 +115,13 @@
 	 * guide lane, but a hero image of a man standing still is a waste of the
 	 * slot — centre stage he gestures up at his own name instead.
 	 */
-	$: anim = pose === 'idle' && mode === 'stage' && !held ? 'point' : pose;
+	/* `mode` is still 'stage' when there is no stage — it only flips to 'free'
+	   when the visitor throws him — so this tested the wrong flag and he stood
+	   permanently mid-gesture, arm out, as his RESTING state. `hasStage` is
+	   the one that knows whether the sticky column actually exists. The
+	   chapter layout has no such column, so the answer is now idle: he simply
+	   stands there until he has a reason not to. */
+	$: anim = pose === 'idle' && hasStage && !held ? 'point' : pose;
 
 	/* ─── Speech ────────────────────────────────────────────────────────── */
 	let bubble = '';
