@@ -24,6 +24,7 @@
 
 	let ChatWidget = null;
 	let Companion = null;
+	let Castle = null;
 	let stopTheme;
 
 	onMount(async () => {
@@ -33,16 +34,25 @@
 
 		// Both the assistant and the guide are secondary affordances — neither
 		// belongs on the critical path for first paint.
-		const [chat, companion] = await Promise.all([
+		const [chat, companion, castle] = await Promise.all([
 			import('$lib/components/ChatWidget.svelte'),
-			import('$lib/character/Companion.svelte')
+			import('$lib/character/Companion.svelte'),
+			import('$lib/three/InfinityCastle.svelte')
 		]);
 		ChatWidget = chat.default;
 		Companion = companion.default;
+		Castle = castle.default;
 	});
 
 	onDestroy(() => stopTheme?.());
 </script>
+
+<!-- The castle, behind everything. Deferred with the rest: it is scenery,
+     and scenery must never hold up the first paint of the text. Until it
+     arrives the page is the flat black it always was. -->
+{#if Castle}
+	<svelte:component this={Castle} />
+{/if}
 
 <!-- The grid, drawn one shade up from the field. Fixed and inert: it is a
      description of the column structure the layout actually uses, not a

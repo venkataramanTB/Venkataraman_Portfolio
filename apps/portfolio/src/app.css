@@ -134,7 +134,11 @@
 	/* Columns the visible guides are drawn on, and the layout follows. */
 	--cols: 12;
 
-	--z-base: 0;
+	/* The castle sits at the very bottom of the page's own stack. The root
+	   element's background paints below even this, so it stays as the last
+	   fallback if the canvas never arrives. */
+	--z-castle: 0;
+	--z-base: 1;
 	--z-raised: 10;
 	--z-nav: 20;
 	--z-overlay: 30;
@@ -186,7 +190,16 @@
  */
 .chapter {
 	position: relative;
-	background: var(--ground);
+	/* Above the castle, which is the only thing below it. */
+	z-index: var(--z-base);
+	/* The dark chapters declare a --veil: the same ground carrying alpha, so
+	   the castle reads THROUGH them as depth. The light chapters (gold,
+	   stone, cream) deliberately do not — a pale ground cannot be made
+	   translucent over a near-black scene without destroying both its
+	   contrast and the hard cut it exists to make. Those stay solid, and the
+	   castle disappearing behind them is the rhythm of the page: you descend,
+	   you surface, you descend again. */
+	background: var(--veil, var(--ground));
 	color: var(--on);
 	--field: var(--ground);
 	--ink: var(--on);
@@ -211,6 +224,7 @@
 
 .ch-ink { /* 17.1:1 */
 	--ground: #0b0b0c;
+	--veil: rgba(11, 11, 12, 0.58);
 	--on: #f3efe6;
 	--on-2: rgba(243, 239, 230, 0.78);
 	--on-3: rgba(243, 239, 230, 0.56);
@@ -224,6 +238,7 @@
 
 .ch-char { /* 15.6:1 */
 	--ground: #17171a;
+	--veil: rgba(23, 23, 26, 0.6);
 	--on: #f3efe6;
 	--on-2: rgba(243, 239, 230, 0.78);
 	--on-3: rgba(243, 239, 230, 0.56);
@@ -237,6 +252,7 @@
 
 .ch-bronze { /* 10.4:1 — gold ink on near-black */
 	--ground: #241c0d;
+	--veil: rgba(36, 28, 13, 0.7);
 	--on: #e8c877;
 	--on-2: rgba(232, 200, 119, 0.8);
 	--on-3: rgba(232, 200, 119, 0.58);
@@ -338,7 +354,11 @@ html {
 
 body {
 	margin: 0;
-	background: #0b0b0c;
+	/* Transparent ON PURPOSE. The castle canvas is a fixed layer at the
+	   bottom of the stack, and an opaque body would paint straight over it.
+	   The <html> background below is what keeps the page black if the canvas
+	   never shows up. */
+	background: transparent;
 	color: #f3efe6;
 	font-family: var(--font);
 	font-size: 1rem;

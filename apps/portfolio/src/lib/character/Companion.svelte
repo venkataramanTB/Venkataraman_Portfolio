@@ -21,6 +21,18 @@
 	import { Spring, drive, project, SPRINGS, springConfig, prefersReducedMotion } from '$lib/motion/spring.js';
 	import { draggable } from '$lib/motion/gestures.js';
 	import SoftFigure from './SoftFigure.svelte';
+	import Akaza3D from './Akaza3D.svelte';
+
+	/**
+	 * Which figure is on screen.
+	 *
+	 * The 3D model is the intended one, but it needs WebGL and a 3.5MB
+	 * download, and neither is guaranteed. `use3D` flips to false the moment
+	 * Akaza3D reports it cannot run, and the SVG character — which needs
+	 * nothing — takes over in the same box, at the same size, driven by the
+	 * same `anim`. The reader never sees a gap, only a different drawing.
+	 */
+	let use3D = true;
 	import Icon from '$lib/components/Icon.svelte';
 	import { GREETING, SECTIONS, REACTIONS, TRICKS, pick } from './script.js';
 
@@ -780,7 +792,18 @@
 				on:pointerdown={onPoke}
 				role="presentation"
 			>
-				<SoftFigure animation={anim} {lean} {facing} {lookX} {lookY} />
+				{#if use3D}
+					<Akaza3D
+						animation={anim}
+						{lean}
+						{facing}
+						{lookX}
+						{lookY}
+						onFail={() => (use3D = false)}
+					/>
+				{:else}
+					<SoftFigure animation={anim} {lean} {facing} {lookX} {lookY} />
+				{/if}
 			</div>
 
 			<!-- Controls -->
@@ -850,16 +873,20 @@
 		height: 420px;
 		/* Two scales multiplied: --scale is where he is in the story (hero vs
 		   guide), --sx/--sy is the impact squash when he lands. Keeping them
-		   separate means a landing never fights the staging. */
+		   separate means a landing never fights the staging.
+		   
+		   This was declared TWICE — and the second one, carrying only the
+		   squash, silently won. The effect was that --scale did nothing at
+		   all: the figure rendered at full hero size everywhere, including
+		   the guide lane where it is meant to be about a third that, which is
+		   why he hung off the left edge of the viewport and sat on top of the
+		   headline. One declaration, carrying both. */
 		transform: scale(calc(var(--scale, 1) * var(--sx, 1)), calc(var(--scale, 1) * var(--sy, 1)))
 			rotate(var(--rot, 0deg));
-		transform-origin: 50% 100%;
+		transform-origin: center bottom;
 		cursor: grab;
 		touch-action: none;
 		-webkit-tap-highlight-color: transparent;
-		/* Driven by the impact squash. */
-		transform: scale(var(--sx, 1), var(--sy, 1));
-		transform-origin: center bottom;
 		transition: transform 110ms var(--ease-out);
 	}
 	.held .grab {

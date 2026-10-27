@@ -103,6 +103,23 @@
 		<div class="bottom">
 			<p class="t-small copy">
 				© {year} {name}. Built with SvelteKit.
+				<!-- Not optional. The 3D figure is CC BY, and that licence is
+				     conditional on naming the author and linking the terms.
+				     Shipping the model without this line is a licence breach,
+				     so it stays even if the footer is ever redesigned. -->
+				<span class="credit">
+					3D model <a
+						href="https://sketchfab.com/3d-models/akaza-from-demon-slayer-rigged-and-textured-1e7a8b0c"
+						rel="noopener noreferrer nofollow"
+						target="_blank">Akaza From Demon Slayer</a
+					>
+					by Light.k, licensed
+					<a
+						href="https://creativecommons.org/licenses/by/4.0/"
+						rel="noopener noreferrer nofollow license"
+						target="_blank">CC BY 4.0</a
+					>. Demon Slayer is the property of its respective rights holders.
+				</span>
 			</p>
 
 			<div class="bottom-end no-print">
@@ -182,6 +199,21 @@
 	}
 	.links a {
 		font-size: 0.90625rem;
+	}
+
+	.credit {
+		display: block;
+		margin-top: 0.4rem;
+		color: var(--text-4);
+		max-width: 56ch;
+	}
+	.credit a {
+		color: inherit;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.credit a:hover {
+		color: var(--text-2);
 	}
 
 	.bottom {

@@ -92,11 +92,11 @@
 
 	onDestroy(() => raf && cancelAnimationFrame(raf));
 
-	// Measured from the skeleton as it now stands: the hair tops out near −75
-	// and the hands swing down to about +30. Nothing below that is drawn, so
-	// the box stops there instead of reserving space for legs that no longer
-	// exist.
-	const VB = { x: -56, y: -80, w: 112, h: 116 };
+	// Measured from the skeleton as it now stands. The spiked hair reaches
+	// much further than the old round head did — the tallest spike tops out
+	// near −94 and the widest reaches ±37 — so the box grew to hold it. The
+	// bottom still stops at +36, because nothing below the fists is drawn.
+	const VB = { x: -67, y: -98, w: 134, h: 134 };
 </script>
 
 <svg
@@ -104,7 +104,7 @@
 	viewBox={`${VB.x} ${VB.y} ${VB.w} ${VB.h}`}
 	preserveAspectRatio="xMidYMid meet"
 	role="img"
-	aria-label="An illustration of Venkataraman"
+	aria-label="An illustration of the site’s guide: a sharp-eyed figure with spiked magenta hair and wrapped fists"
 	style={`--lean:${lean}deg; --lx:${lookX}; --ly:${lookY}`}
 >
 	<!-- No contact shadow: a shadow is cast by something standing on a floor,

@@ -39,6 +39,13 @@
 			<rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx} fill={fill(s.fill)} />
 		{:else if s.type === 'circle'}
 			<circle id={s.id} cx={s.cx} cy={s.cy} r={s.r} fill={fill(s.fill)} />
+		{:else if s.type === 'poly'}
+			<!-- A straight-edged shape: hair spikes, angular eyes, sharp brows.
+			     Circles can only ever make something soft and round, and this
+			     character is built out of points. -->
+			<polygon points={s.points} fill={fill(s.fill)} />
+		{:else if s.type === 'path'}
+			<path d={s.d} fill={s.fill ? fill(s.fill) : 'none'} stroke={s.stroke ? fill(s.stroke) : 'none'} stroke-width={s.sw ?? 2} stroke-linecap="round" />
 		{:else if s.type === 'smile'}
 			<path
 				d={`M${s.cx - s.w / 2} ${s.cy} q${s.w / 2} ${s.w * 0.55} ${s.w} 0`}

@@ -34,3 +34,8 @@ audit/
 # apps/portfolio/static/character/ are what the site ships; these 2MB
 # originals are kept locally for re-cutting, not committed.
 assets-source/
+
+# The downloaded source model. The copy the site actually serves lives at
+# apps/portfolio/static/models/akaza.glb and IS committed — this is the
+# original download kept locally, and committing both ships 3.5MB twice.
+/3d models/
